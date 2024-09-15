@@ -6,6 +6,7 @@ const { Server } = require("socket.io");
 var ObjectId = require('mongodb').ObjectId;
 
 const cors = require('cors');
+const { permission } = require("process");
 const port = process.env.PORT || 5000;
 
 // Middleware
@@ -65,28 +66,28 @@ async function run() {
 
       socket.on("send_like", async (data) => {
         console.log(data.data);
-      
+
         const database = client.db("users");
         const post = database.collection("userLoginInfo");
-      
+
         const updateData = data.data; // Assuming 'data.data' contains an array of objects
-      
+
         console.log(updateData);
-      
+
         // Validate input data (optional, but recommended)
         if (!Array.isArray(updateData) || updateData.length === 0) {
           // Emit an error event to notify the client about invalid data
           socket.emit("like_update_error", { message: "Invalid update data provided" });
           return;
         }
-      
+
         const updateDocs = updateData.map((singleData) => {
           try {
             // Extract values for update (adjust these based on your data structure)
             const id = new ObjectId(`${singleData.new_id}`); // Assuming 'id' is a key in each object
             const newTotal = singleData.new_total;
             const newLike = singleData.new_like;
-      
+
             return {
               updateOne: {
                 filter: { _id: id },
@@ -98,24 +99,24 @@ async function run() {
             return null; // Skip updating this document on error
           }
         });
-      
+
         // Filter out invalid update objects (optional, but recommended)
         const filteredUpdateDocs = updateDocs.filter(Boolean); // Remove null values
-      
+
         if (filteredUpdateDocs.length === 0) {
           // Emit an error event to notify the client about no valid updates found
           socket.emit("like_update_error", { message: "No valid updates found" });
           return;
         }
-      
+
         try {
           const results = await post.bulkWrite(filteredUpdateDocs);
           const updatedCount = results.modifiedCount;
-      
+
           // Log the updated objects after successful update
           // console.log("Updated objects:", filteredUpdateDocs.updateOne.update);
           socket.broadcast.emit("like_success", { filteredUpdateDocs })
-      
+
           // Emit a success event to notify the client about the update status
           socket.emit("like_update_success", { message: `${updatedCount} documents updated successfully` });
         } catch (err) {
@@ -146,6 +147,42 @@ async function run() {
         console.error('Error fetching data:', error);
         res.status(500).json({ message: 'Server error' });
       }
+    });
+    app.get(`/get_user/:user_name/:password`, async (req, res) => {
+      const database = client.db("users");
+      const post = database.collection("userLoginInfo");
+
+
+      const query = {
+        userName: req.params.user_name,
+        password: req.params.password,
+      };
+      console.log(query);
+
+      const item = await post.findOne(query);
+
+      console.log(item);
+
+      if (item === null) {
+        res.send({ permission: false })
+      } else {
+        item.password = ""
+        res.send({
+          permission: true,
+          item
+        })
+      }
+      // try {
+      //   const database = client.db("users");
+      //   const post = database.collection("userLoginInfo");
+      //   const documents = await post.find({}).toArray();
+
+      //   const data = documents;
+      //   res.json(data);
+      // } catch (error) {
+      //   console.error('Error fetching data:', error);
+      //   res.status(500).json({ message: 'Server error' });
+      // }
     });
 
     // app.post("/addUser", async (req, res) => {
