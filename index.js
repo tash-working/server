@@ -199,7 +199,56 @@ async function run() {
     //   console.log(
     //     `A document was inserted with the _id: ${result.insertedId}`,
     //   );
+
     // });
+
+    app.put('/addPick', async (req, res) => {
+      const updatedUserPic = req.body;
+      const database = client.db("users");
+      const post = database.collection("userLoginInfo");
+      const filter = {_id: new ObjectId(updatedUserPic.id)}
+      const options = {upsert: true}
+  
+      console.log(updatedUserPic);
+      const update = {
+        $set: {
+          url:updatedUserPic.url
+        }
+      }
+    
+      try {
+        const updateResult = await post.updateOne(filter,update,options);
+    
+        if (updateResult.matchedCount === 0) {
+          return res.status(404).json({ message: 'Document not found' });
+        }
+    
+        res.json({ message: 'Document updated successfully' });
+      } catch (err) {
+        console.error('Error updating document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+      
+
+    
+      // User.updateOne({ _id: userId }, updatedUser, (err, result) => {
+      //   if (err) {
+      //     console.error('Error updating user:', err);
+      //     res.status(500).json({ message: 'Internal server error' });
+      //     return;
+      //   }
+    
+      //   if (result.modifiedCount === 0) {
+      //     res.status(404).json({ message: 'User not found' });
+      //     return;
+      //   }
+    
+      //   res.status(200).json({ message: 'User updated successfully' });
+      // });
+    
+
+
 
     app.put('/update', async (req, res) => {
       const database = client.db("users");
