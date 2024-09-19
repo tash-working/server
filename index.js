@@ -185,6 +185,39 @@ async function run() {
       //   res.status(500).json({ message: 'Server error' });
       // }
     });
+    app.get(`/get_user/:id`, async (req, res) => {
+      const database = client.db("users");
+      const post = database.collection("userLoginInfo");
+
+
+      const query = {
+        _id: new ObjectId(req.params.id)
+      };
+      console.log(query);
+
+      const item = await post.findOne(query);
+
+      console.log(item);
+
+      if (item === null) {
+        res.send({ permission: false })
+      } else {
+        item.password = ""
+        res.send(item)
+        
+      }
+      // try {
+      //   const database = client.db("users");
+      //   const post = database.collection("userLoginInfo");
+      //   const documents = await post.find({}).toArray();
+
+      //   const data = documents;
+      //   res.json(data);
+      // } catch (error) {
+      //   console.error('Error fetching data:', error);
+      //   res.status(500).json({ message: 'Server error' });
+      // }
+    });
 
     // app.post("/addUser", async (req, res) => {
     //   const newUser = req.body;
@@ -211,8 +244,10 @@ async function run() {
   
       console.log(updatedUserPic);
       const update = {
-        $set: {
-          url:updatedUserPic.url
+        $push: {
+          url: {
+            $each: [updatedUserPic.newUrl]
+          }
         }
       }
     
