@@ -48,15 +48,30 @@ async function run() {
         const myDB = client.db("users");
         const myColl = myDB.collection(`userLoginInfo`);
 
+
+        const isTaken = await myColl.findOne({ userName: data.userData.userName });
+       if (isTaken===null) {
+        
         const result = await myColl.insertOne(data.userData);
 
 
-        console.log(result.insertedId); // Output: ObjectId("6464252729455d5810000000")
+
+        // console.log(result.insertedId); // Output: ObjectId("6464252729455d5810000000")
 
         // Retrieve the full document with its _id
         const insertedDocument = await myColl.findOne({ _id: result.insertedId });
         console.log(insertedDocument);
+      
+        socket.emit("newUser_msg", {isSigned:true ,msg: "You have been signed in"});
         socket.broadcast.emit("receive_newUser", insertedDocument);
+
+        
+       }else{
+        socket.emit("newUser_msg", {isSigned:false ,msg: "this username is taken"});
+       }
+        
+
+       
       });
 
 
