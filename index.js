@@ -73,6 +73,101 @@ async function run() {
 
        
       });
+      socket.on("send_postLike", async(data)=>{
+        // console.log("data",data);
+
+        const database = client.db("users");
+        const post = database.collection("userLoginInfo");
+  
+  
+        const query = {
+          _id: new ObjectId(data.id)
+        };
+        // console.log(query);
+  
+        const item = await post.findOne(query);
+  
+        // console.log("items: ",item);
+        const posts = item.url
+      //  console.log("posts: ",posts);
+       
+       let editArray = []
+        for (let i = 0; i < posts.length; i++) {
+          if( data.postId === posts[i].id){
+            editArray = posts[i].likes
+          }
+          
+        }
+      
+        console.log(editArray);
+        let update = {}
+        if (data.add && !editArray.includes(data.userName)) {
+          update = {
+            $push: {
+              "url.$[elem].likes": data.userName
+            }
+          };
+
+          const filter = {
+            _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
+          };
+      
+          const options = {
+            arrayFilters: [
+              {
+                "elem.id": { $eq: data.postId } // Update the object with this specific id in the url array (optional)
+              }
+            ]
+          };
+      
+          const result = await post.updateOne(filter, update, options);
+      
+          if (result.modifiedCount > 0) {
+            console.log("Document updated successfully:", result.modifiedCount);
+          } else {
+            console.log("No document found for the specified filter.");
+          }
+          
+        }else if (!data.add && editArray.includes(data.userName)) {
+          update = {
+            $pull: {
+              "url.$[elem].likes": data.userName
+            }
+          };
+
+          const filter = {
+            _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
+          };
+      
+          const options = {
+            arrayFilters: [
+              {
+                "elem.id": { $eq: data.postId } // Update the object with this specific id in the url array (optional)
+              }
+            ]
+          };
+      
+          const result = await post.updateOne(filter, update, options);
+      
+          if (result.modifiedCount > 0) {
+            console.log("Document updated successfully:", result.modifiedCount);
+          } else {
+            console.log("No document found for the specified filter.");
+          }
+        }else{
+          console.log("no");
+          
+
+        }
+
+        
+      
+         
+      
+         
+        
+
+      })
 
 
 
