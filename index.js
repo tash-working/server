@@ -419,6 +419,7 @@ async function run() {
 
       const updateData = req.body; // Assuming 'req.body' contains an array of objects
       console.log(updateData);
+      
 
 
       // // Validate input data (optional, but recommended)
@@ -461,6 +462,11 @@ async function run() {
       //   res.status(500).json({ message: 'Error updating documents' });
       // }
     });
+    app.get('/', (req, res) => {
+      res.send('Hello, World!');   
+  
+  });
+  
 
     // Start the server
     server.listen(port, () => {
