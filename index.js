@@ -374,6 +374,24 @@ async function run() {
         res.status(500).json({ message: 'Internal server error' });
       }
     });
+    app.put('/rating', async (req, res) => {
+      const updatedUserPic = req.body;
+      const database = client.db("rating");
+      const post = database.collection("rating");
+     
+      try {
+        const updateResult = await post.insertOne(updatedUserPic);
+    
+        if (updateResult.matchedCount === 0) {
+          return res.status(404).json({ message: 'Document not found' });
+        }
+    
+        res.json({ message: 'Document updated successfully' });
+      } catch (err) {
+        console.error('Error updating document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
       
 
     
