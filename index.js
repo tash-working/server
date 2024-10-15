@@ -374,7 +374,22 @@ async function run() {
         res.status(500).json({ message: 'Internal server error' });
       }
     });
-    app.put('/rating', async (req, res) => {
+
+
+    app.get('/get_rating', async (req, res) => {
+      try {
+        const database = client.db("rating");
+        const post = database.collection("rating");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+    app.put('/set_rating', async (req, res) => {
       const updatedUserPic = req.body;
       const database = client.db("rating");
       const post = database.collection("rating");
@@ -391,6 +406,25 @@ async function run() {
         console.error('Error updating document:', err);
         res.status(500).json({ message: 'Internal server error' });
       }
+    });
+    app.delete ('/deleteRating/:id', async (req, res) => {
+      const database = client.db("rating");
+      const post = database.collection("rating");
+      const id = req.params.id
+      const query = {_id: new ObjectId(id)}
+
+      try {
+        const result = await post.deleteOne(query);
+        res.send(result)
+    
+       
+    
+       
+      } catch (err) {
+        console.error('Error deleting document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+      
     });
       
 
