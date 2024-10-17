@@ -345,6 +345,50 @@ async function run() {
 
     // });
 
+
+
+
+
+
+
+
+    app.get('/orders', async (req, res) => {
+      try {
+        const database = client.db("tables");
+        const post = database.collection("table");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+  app.get('/tables/:table_num', async (req, res) => {
+    const tableNum = req.params.table_num
+      try {
+        const database = client.db("menu");
+        const post = database.collection("items");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+
+
+
+
+
+
+
+
+
+
     app.put('/addPick', async (req, res) => {
       const updatedUserPic = req.body;
       const database = client.db("users");
@@ -389,7 +433,45 @@ async function run() {
         res.status(500).json({ message: 'Server error' });
       }
     });
-    app.put('/set_rating', async (req, res) => {
+    app.get('/get_rating/:id', async (req, res) => {
+      try {
+          const database = client.db("rating");
+          const post = database.collection("rating");
+          const id = req.params.id; // Get the ID from the URL parameter
+  
+          const document = await post.findOne({ _id: new ObjectId(id) }); // Find the document by ID
+  
+          if (document) {
+              res.json(document);
+          } else {
+              res.status(404).json({ message: 'Document not found' });
+          }
+      } catch (error) {
+          console.error('Error fetching data:', error);
+          res.status(500).json({ message: 'Server error' });
+      }
+  });
+    app.get('/rating/:id', async (req, res) => {
+      const database = client.db("rating"); // Assuming client is a MongoDB client instance
+      const post = database.collection("rating");
+      const id = req.params.id;
+    
+      try {
+        // Use findOne method directly
+        const result = await post.findOne({ _id: new ObjectId(id) });
+    
+        if (!result) {
+          // Handle case where no document is found
+          return res.status(404).json({ message: 'Rating not found' });
+        }
+    
+        res.send(result);
+      } catch (error) {
+        console.error('Error fetching rating document:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+    app.post('/set_rating', async (req, res) => {
       const updatedUserPic = req.body;
       const database = client.db("rating");
       const post = database.collection("rating");
@@ -401,7 +483,7 @@ async function run() {
           return res.status(404).json({ message: 'Document not found' });
         }
     
-        res.json({ message: 'Document updated successfully' });
+        res.json(updateResult);
       } catch (err) {
         console.error('Error updating document:', err);
         res.status(500).json({ message: 'Internal server error' });
@@ -426,6 +508,56 @@ async function run() {
       }
       
     });
+    app.put ('/set_rating/:id', async (req, res) => {
+      const database = client.db("rating");
+      const post = database.collection("rating");
+      const id = req.params.id
+      const filter = {_id: new ObjectId(id)}
+      const options = { update: true}
+      const updateOrder = req.body
+      
+      const order = {
+        $set: {
+                    foodQuality: updateOrder.foodQuality,
+                    overallServiceQuality: updateOrder.overallServiceQuality,
+                    cleanliness: updateOrder.cleanliness,
+                    orderAccuracy: updateOrder.orderAccuracy,
+                    speedOfService: updateOrder.speedOfService,
+                    value: updateOrder.value,
+                    overallExperience: updateOrder.overallExperience,
+                    text: updateOrder.text,
+                    bill: updateOrder.bill- updateOrder.bill * 0.1
+        }
+      }
+
+      try {
+        const result  = await post.updateOne(filter,order,options);
+        res.send(result)
+    
+       
+    
+       
+      } catch (err) {
+        console.error('Error deleting document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+      
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
       
 
     
