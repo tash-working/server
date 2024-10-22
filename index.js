@@ -365,7 +365,7 @@ async function run() {
         res.status(500).json({ message: 'Server error' });
       }
     });
-  app.get('/tables/:table_num', async (req, res) => {
+  app.get('/tables/getMenu', async (req, res) => {
     const tableNum = req.params.table_num
       try {
         const database = client.db("menu");
