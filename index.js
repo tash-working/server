@@ -352,6 +352,33 @@ async function run() {
 
 
 
+    // start of order web
+    app.get('/getMenu', async (req, res) => {
+      
+        try {
+          const database = client.db("menu");
+          const post = database.collection("menu");
+          const documents = await post.find({}).toArray();
+  
+          const data = documents;
+          res.json(data);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          res.status(500).json({ message: 'Server error' });
+        }
+      });
+
+
+
+    // end of order web
+
+
+
+
+
+
+
+
     app.get('/orders', async (req, res) => {
       try {
         const database = client.db("tables");
