@@ -367,6 +367,20 @@ async function run() {
           res.status(500).json({ message: 'Server error' });
         }
       });
+    app.get('/getMenu/:category', async (req, res) => {
+      
+        try {
+          const database = client.db("menu");
+          const post = database.collection("menu");
+          const documents = await post.find({}).toArray();
+  
+          const data = documents;
+          res.json(data);
+        } catch (error) {
+          console.error('Error fetching data:', error);
+          res.status(500).json({ message: 'Server error' });
+        }
+      });
 
 
 
