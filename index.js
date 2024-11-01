@@ -159,13 +159,7 @@ async function run() {
           
 
         }
-
-        
-      
-         
-      
-         
-        
+    
 
       })
 
@@ -585,41 +579,6 @@ async function run() {
       
     });
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-      
-
-    
-      // User.updateOne({ _id: userId }, updatedUser, (err, result) => {
-      //   if (err) {
-      //     console.error('Error updating user:', err);
-      //     res.status(500).json({ message: 'Internal server error' });
-      //     return;
-      //   }
-    
-      //   if (result.modifiedCount === 0) {
-      //     res.status(404).json({ message: 'User not found' });
-      //     return;
-      //   }
-    
-      //   res.status(200).json({ message: 'User updated successfully' });
-      // });
-    
-
-
-
     app.put('/update', async (req, res) => {
       const database = client.db("users");
       const post = database.collection("userLoginInfo");
@@ -629,45 +588,7 @@ async function run() {
       
 
 
-      // // Validate input data (optional, but recommended)
-      // if (!Array.isArray(updateData) || updateData.length === 0) {
-      //   return res.status(400).json({ message: 'Invalid update data provided' });
-      // }
-
-      // const updateDocs = updateData.map((singleData) => {
-      //   try {
-      //     // Extract values for update (adjust these based on your data structure)
-      //     const id = new ObjectId(`${singleData.new_id}`); // Assuming 'id' is a key in each object
-      //     const newTotal = singleData.new_total;
-      //     const newLike = singleData.new_like;
-
-      //     return {
-      //       updateOne: {
-      //         filter: { _id: id },
-      //         update: { $set: { total: newTotal, like: newLike } },
-      //       },
-      //     };
-      //   } catch (err) {
-      //     console.error(`Error processing update for ID: ${singleData.new_id}`, err);
-      //     return null; // Skip updating this document on error
-      //   }
-      // });
-
-      // // Filter out invalid update objects (optional, but recommended)
-      // const filteredUpdateDocs = updateDocs.filter(Boolean); // Remove null values
-
-      // if (filteredUpdateDocs.length === 0) {
-      //   return res.status(400).json({ message: 'No valid updates found' });
-      // }
-
-      // try {
-      //   const results = await post.bulkWrite(filteredUpdateDocs);
-      //   const updatedCount = results.modifiedCount;
-      //   res.status(200).json({ message: `${updatedCount} documents updated successfully` });
-      // } catch (err) {
-      //   console.error('Error updating documents:', err);
-      //   res.status(500).json({ message: 'Error updating documents' });
-      // }
+    
     });
     app.get('/', (req, res) => {
       res.send('Hello, World!');   
