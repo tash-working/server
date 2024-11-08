@@ -2,7 +2,7 @@ const express = require("express");
 const app = express();
 const http = require('http');
 const { MongoClient, ServerApiVersion } = require('mongodb');
-const { Server } = require("socket.io");
+const { Server, Socket } = require("socket.io");
 var ObjectId = require('mongodb').ObjectId;
 
 const cors = require('cors');
@@ -50,55 +50,55 @@ async function run() {
 
 
         const isTaken = await myColl.findOne({ userName: data.userData.userName });
-       if (isTaken===null) {
-        
-        const result = await myColl.insertOne(data.userData);
+        if (isTaken === null) {
+
+          const result = await myColl.insertOne(data.userData);
 
 
 
-        // console.log(result.insertedId); // Output: ObjectId("6464252729455d5810000000")
+          // console.log(result.insertedId); // Output: ObjectId("6464252729455d5810000000")
 
-        // Retrieve the full document with its _id
-        const insertedDocument = await myColl.findOne({ _id: result.insertedId });
-        console.log(insertedDocument);
-      
-        socket.emit("newUser_msg", {isSigned:true ,msg: "You have been signed in"});
-        socket.broadcast.emit("receive_newUser", insertedDocument);
+          // Retrieve the full document with its _id
+          const insertedDocument = await myColl.findOne({ _id: result.insertedId });
+          console.log(insertedDocument);
 
-        
-       }else{
-        socket.emit("newUser_msg", {isSigned:false ,msg: "this username is taken"});
-       }
-        
+          socket.emit("newUser_msg", { isSigned: true, msg: "You have been signed in" });
+          socket.broadcast.emit("receive_newUser", insertedDocument);
 
-       
+
+        } else {
+          socket.emit("newUser_msg", { isSigned: false, msg: "this username is taken" });
+        }
+
+
+
       });
-      socket.on("send_postLike", async(data)=>{
+      socket.on("send_postLike", async (data) => {
         // console.log("data",data);
 
         const database = client.db("users");
         const post = database.collection("userLoginInfo");
-  
-  
+
+
         const query = {
           _id: new ObjectId(data.id)
         };
         // console.log(query);
-  
+
         const item = await post.findOne(query);
-  
+
         // console.log("items: ",item);
         const posts = item.url
-      //  console.log("posts: ",posts);
-       
-       let editArray = []
+        //  console.log("posts: ",posts);
+
+        let editArray = []
         for (let i = 0; i < posts.length; i++) {
-          if( data.postId === posts[i].id){
+          if (data.postId === posts[i].id) {
             editArray = posts[i].likes
           }
-          
+
         }
-      
+
         console.log(editArray);
         let update = {}
         if (data.add && !editArray.includes(data.userName)) {
@@ -111,7 +111,7 @@ async function run() {
           const filter = {
             _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
           };
-      
+
           const options = {
             arrayFilters: [
               {
@@ -119,16 +119,16 @@ async function run() {
               }
             ]
           };
-      
+
           const result = await post.updateOne(filter, update, options);
-      
+
           if (result.modifiedCount > 0) {
             console.log("Document updated successfully:", result.modifiedCount);
           } else {
             console.log("No document found for the specified filter.");
           }
-          
-        }else if (!data.add && editArray.includes(data.userName)) {
+
+        } else if (!data.add && editArray.includes(data.userName)) {
           update = {
             $pull: {
               "url.$[elem].likes": data.userName
@@ -138,7 +138,7 @@ async function run() {
           const filter = {
             _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
           };
-      
+
           const options = {
             arrayFilters: [
               {
@@ -146,20 +146,20 @@ async function run() {
               }
             ]
           };
-      
+
           const result = await post.updateOne(filter, update, options);
-      
+
           if (result.modifiedCount > 0) {
             console.log("Document updated successfully:", result.modifiedCount);
           } else {
             console.log("No document found for the specified filter.");
           }
-        }else{
+        } else {
           console.log("no");
-          
+
 
         }
-    
+
 
       })
 
@@ -233,6 +233,94 @@ async function run() {
 
 
 
+
+
+
+
+
+
+      socket.on('send_order', async (data) => {
+
+        const myDB = client.db("menu");
+        const myColl = myDB.collection(`cash`);
+
+        const result = await myColl.insertOne(data);
+
+        console.log(
+          `A document was inserted with the _id: ${result.insertedId}`,
+        );
+        
+        socket.broadcast.emit("recive_order", data)
+        socket.emit("order_sent", data)
+
+        // const database = client.db("users");
+        // const post = database.collection("userLoginInfo");
+
+        // const updateData = data.data; // Assuming 'data.data' contains an array of objects
+
+        // console.log(updateData);
+        // console.log(data);
+      });
+      socket.on('updateToPrepare', async (data) => {
+
+        const myDB = client.db("menu");
+        const myColl = myDB.collection(`cash`);
+        console.log(data);
+        const id = data.id
+        const filter = { _id: new ObjectId(data.id) }
+        const options = { upsert: true }
+        if (data.status === "granted") {
+          const update = {
+            $set: {
+              status: "granted"
+            }
+          };
+          try {
+            const updateResult = await myColl.updateOne(filter, update, options);
+        
+            if (updateResult.matchedCount === 0) {
+              // Emit an event to the client indicating document not found
+              socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+              // Emit an event to the client indicating success
+              socket.broadcast.emit('statusGranted', { id ,status:"granted"});
+            }
+          } catch (err) {
+            console.error('Error updating document:', err);
+            // Emit an event to the client indicating an internal server error
+            socket.emit('internalServerError', { message: 'Internal server error' });
+          }
+        
+        }else if (data.status === "complete") {
+          const update = {
+            $set: {
+              status: "complete"
+            }
+          };
+          try {
+            const updateResult = await myColl.updateOne(filter, update, options);
+        
+            if (updateResult.matchedCount === 0) {
+              // Emit an event to the client indicating document not found
+              socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+              // Emit an event to the client indicating success
+              socket.broadcast.emit('statusGranted', { id, status:"complete" });
+            }
+          } catch (err) {
+            console.error('Error updating document:', err);
+            // Emit an event to the client indicating an internal server error
+            socket.emit('internalServerError', { message: 'Internal server error' });
+          }
+        }
+      
+        
+       
+      });
+
+
+
+
       socket.on('disconnect', () => {
         console.log('User disconnected');
       });
@@ -275,7 +363,7 @@ async function run() {
           permission: true,
           item
         })
-        
+
       }
       // try {
       //   const database = client.db("users");
@@ -308,7 +396,7 @@ async function run() {
       } else {
         item.password = ""
         res.send(item)
-        
+
       }
       // try {
       //   const database = client.db("users");
@@ -347,34 +435,51 @@ async function run() {
 
 
     // start of order web
+    app.get('/getRecivedOrders', async (req, res) => {
+
+      try {
+        const database = client.db("menu");
+        const post = database.collection("cash");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
     app.get('/getMenu', async (req, res) => {
-      
-        try {
-          const database = client.db("menu");
-          const post = database.collection("menu");
-          const documents = await post.find({}).toArray();
-  
-          const data = documents;
-          res.json(data);
-        } catch (error) {
-          console.error('Error fetching data:', error);
-          res.status(500).json({ message: 'Server error' });
-        }
-      });
+
+      try {
+        const database = client.db("menu");
+        const post = database.collection("menu");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+
+
+
     app.get('/getMenu/:category', async (req, res) => {
-      
-        try {
-          const database = client.db("menu");
-          const post = database.collection("menu");
-          const documents = await post.find({}).toArray();
-  
-          const data = documents;
-          res.json(data);
-        } catch (error) {
-          console.error('Error fetching data:', error);
-          res.status(500).json({ message: 'Server error' });
-        }
-      });
+
+      try {
+        const database = client.db("menu");
+        const post = database.collection("menu");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
 
 
 
@@ -400,8 +505,9 @@ async function run() {
         res.status(500).json({ message: 'Server error' });
       }
     });
-  app.get('/tables/getMenu', async (req, res) => {
-    const tableNum = req.params.table_num
+
+    app.get('/tables/getMenu', async (req, res) => {
+      const tableNum = req.params.table_num
       try {
         const database = client.db("menu");
         const post = database.collection("items");
@@ -428,9 +534,9 @@ async function run() {
       const updatedUserPic = req.body;
       const database = client.db("users");
       const post = database.collection("userLoginInfo");
-      const filter = {_id: new ObjectId(updatedUserPic.id)}
-      const options = {upsert: true}
-  
+      const filter = { _id: new ObjectId(updatedUserPic.id) }
+      const options = { upsert: true }
+
       console.log(updatedUserPic);
       const update = {
         $push: {
@@ -439,14 +545,14 @@ async function run() {
           }
         }
       }
-    
+
       try {
-        const updateResult = await post.updateOne(filter,update,options);
-    
+        const updateResult = await post.updateOne(filter, update, options);
+
         if (updateResult.matchedCount === 0) {
           return res.status(404).json({ message: 'Document not found' });
         }
-    
+
         res.json({ message: 'Document updated successfully' });
       } catch (err) {
         console.error('Error updating document:', err);
@@ -470,36 +576,36 @@ async function run() {
     });
     app.get('/get_rating/:id', async (req, res) => {
       try {
-          const database = client.db("rating");
-          const post = database.collection("rating");
-          const id = req.params.id; // Get the ID from the URL parameter
-  
-          const document = await post.findOne({ _id: new ObjectId(id) }); // Find the document by ID
-  
-          if (document) {
-              res.json(document);
-          } else {
-              res.status(404).json({ message: 'Document not found' });
-          }
+        const database = client.db("rating");
+        const post = database.collection("rating");
+        const id = req.params.id; // Get the ID from the URL parameter
+
+        const document = await post.findOne({ _id: new ObjectId(id) }); // Find the document by ID
+
+        if (document) {
+          res.json(document);
+        } else {
+          res.status(404).json({ message: 'Document not found' });
+        }
       } catch (error) {
-          console.error('Error fetching data:', error);
-          res.status(500).json({ message: 'Server error' });
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
       }
-  });
+    });
     app.get('/rating/:id', async (req, res) => {
       const database = client.db("rating"); // Assuming client is a MongoDB client instance
       const post = database.collection("rating");
       const id = req.params.id;
-    
+
       try {
         // Use findOne method directly
         const result = await post.findOne({ _id: new ObjectId(id) });
-    
+
         if (!result) {
           // Handle case where no document is found
           return res.status(404).json({ message: 'Rating not found' });
         }
-    
+
         res.send(result);
       } catch (error) {
         console.error('Error fetching rating document:', error);
@@ -510,73 +616,73 @@ async function run() {
       const updatedUserPic = req.body;
       const database = client.db("rating");
       const post = database.collection("rating");
-     
+
       try {
         const updateResult = await post.insertOne(updatedUserPic);
-    
+
         if (updateResult.matchedCount === 0) {
           return res.status(404).json({ message: 'Document not found' });
         }
-    
+
         res.json(updateResult);
       } catch (err) {
         console.error('Error updating document:', err);
         res.status(500).json({ message: 'Internal server error' });
       }
     });
-    app.delete ('/deleteRating/:id', async (req, res) => {
+    app.delete('/deleteRating/:id', async (req, res) => {
       const database = client.db("rating");
       const post = database.collection("rating");
       const id = req.params.id
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
 
       try {
         const result = await post.deleteOne(query);
         res.send(result)
-    
-       
-    
-       
+
+
+
+
       } catch (err) {
         console.error('Error deleting document:', err);
         res.status(500).json({ message: 'Internal server error' });
       }
-      
+
     });
-    app.put ('/set_rating/:id', async (req, res) => {
+    app.put('/set_rating/:id', async (req, res) => {
       const database = client.db("rating");
       const post = database.collection("rating");
       const id = req.params.id
-      const filter = {_id: new ObjectId(id)}
-      const options = { update: true}
+      const filter = { _id: new ObjectId(id) }
+      const options = { update: true }
       const updateOrder = req.body
-      
+
       const order = {
         $set: {
-                    foodQuality: updateOrder.foodQuality,
-                    overallServiceQuality: updateOrder.overallServiceQuality,
-                    cleanliness: updateOrder.cleanliness,
-                    orderAccuracy: updateOrder.orderAccuracy,
-                    speedOfService: updateOrder.speedOfService,
-                    value: updateOrder.value,
-                    overallExperience: updateOrder.overallExperience,
-                    text: updateOrder.text,
-                    bill: updateOrder.bill- updateOrder.bill * 0.1
+          foodQuality: updateOrder.foodQuality,
+          overallServiceQuality: updateOrder.overallServiceQuality,
+          cleanliness: updateOrder.cleanliness,
+          orderAccuracy: updateOrder.orderAccuracy,
+          speedOfService: updateOrder.speedOfService,
+          value: updateOrder.value,
+          overallExperience: updateOrder.overallExperience,
+          text: updateOrder.text,
+          bill: updateOrder.bill - updateOrder.bill * 0.1
         }
       }
 
       try {
-        const result  = await post.updateOne(filter,order,options);
+        const result = await post.updateOne(filter, order, options);
         res.send(result)
-    
-       
-    
-       
+
+
+
+
       } catch (err) {
         console.error('Error deleting document:', err);
         res.status(500).json({ message: 'Internal server error' });
       }
-      
+
     });
 
     app.put('/update', async (req, res) => {
@@ -585,16 +691,16 @@ async function run() {
 
       const updateData = req.body; // Assuming 'req.body' contains an array of objects
       console.log(updateData);
-      
 
 
-    
+
+
     });
     app.get('/', (req, res) => {
-      res.send('Hello, World!');   
-  
-  });
-  
+      res.send('Hello, World!');
+
+    });
+
 
     // Start the server
     server.listen(port, () => {
