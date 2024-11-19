@@ -1,3 +1,4 @@
+
 const express = require("express");
 const app = express();
 const http = require('http');
@@ -294,7 +295,9 @@ async function run() {
         }else if (data.status === "complete") {
           const update = {
             $set: {
-              status: "complete"
+              status: "complete",
+              orderCompleteTime: data.orderCompleteTime
+
             }
           };
           try {
