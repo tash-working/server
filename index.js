@@ -262,6 +262,50 @@ async function run() {
         // console.log(updateData);
         // console.log(data);
       });
+      socket.on('cancel_order', async (data) => {
+        console.log(data);
+        const myDB = client.db("menu");
+        const myColl = myDB.collection(`cash`);
+        console.log(data);
+        const id = data._id
+        const filter = { _id: new ObjectId(id) }
+        const options = { upsert: true }
+        const update = {
+          $set: {
+            req: "cancel"
+          }
+        };
+        try {
+          const updateResult = await myColl.updateOne(filter, update, options);
+      
+          if (updateResult.matchedCount === 0) {
+            // Emit an event to the client indicating document not found
+            socket.emit('documentNotFound', { message: 'Document not found' });
+          } else {
+            // Emit an event to the client indicating success
+            socket.broadcast.emit('requested', { id ,req:"cancel"});
+          }
+        } catch (err) {
+          console.error('Error updating document:', err);
+          // Emit an event to the client indicating an internal server error
+          socket.emit('internalServerError', { message: 'Internal server error' });
+        }
+       
+
+        // const myDB = client.db("menu");
+        // const myColl = myDB.collection(`cash`);
+
+        // const result = await myColl.insertOne(data);
+
+        // console.log(
+        //   `A document was inserted with the _id: ${result.insertedId}`,
+        // );
+        
+        // socket.broadcast.emit("recive_order", data)
+        // socket.emit("order_sent", data)
+
+      });
+      
       socket.on('updateToPrepare', async (data) => {
 
         const myDB = client.db("menu");
@@ -309,6 +353,29 @@ async function run() {
             } else {
               // Emit an event to the client indicating success
               socket.broadcast.emit('statusGranted', { id, status:"complete" });
+            }
+          } catch (err) {
+            console.error('Error updating document:', err);
+            // Emit an event to the client indicating an internal server error
+            socket.emit('internalServerError', { message: 'Internal server error' });
+          }
+        }else if (data.status === "cancel") {
+          const update = {
+            $set: {
+              status: "cancel",
+              orderCompleteTime: data.orderCompleteTime
+
+            }
+          };
+          try {
+            const updateResult = await myColl.updateOne(filter, update, options);
+        
+            if (updateResult.matchedCount === 0) {
+              // Emit an event to the client indicating document not found
+              socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+              // Emit an event to the client indicating success
+              socket.broadcast.emit('statusGranted', { id, status:"cancel" });
             }
           } catch (err) {
             console.error('Error updating document:', err);
