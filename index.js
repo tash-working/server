@@ -263,48 +263,28 @@ async function run() {
         // console.log(data);
       });
       socket.on('cancel_order', async (data) => {
-        console.log(data);
+        console.log('Received cancel_order:', data);
+    
         const myDB = client.db("menu");
-        const myColl = myDB.collection(`cash`);
-        console.log(data);
-        const id = data._id
-        const filter = { _id: new ObjectId(id) }
-        const options = { upsert: true }
-        const update = {
-          $set: {
-            req: "cancel"
-          }
-        };
+        const myColl = myDB.collection("cash");
+    
+        const filter = { _id: new ObjectId(data._id) };
+    
         try {
-          const updateResult = await myColl.updateOne(filter, update, options);
-      
-          if (updateResult.matchedCount === 0) {
-            // Emit an event to the client indicating document not found
-            socket.emit('documentNotFound', { message: 'Document not found' });
-          } else {
-            // Emit an event to the client indicating success
-            socket.broadcast.emit('requested', { id ,req:"cancel"});
-          }
+            const updateResult = await myColl.updateOne(filter, { $set: { req: "cancel" } });
+    
+            if (updateResult.matchedCount === 0) {
+                console.log(`Document with ID ${data._id} not found.`);
+                socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+                console.log(`Document with ID ${data._id} updated successfully.`);
+                socket.broadcast.emit('requested', { id: data._id, req: "cancel" });
+            }
         } catch (err) {
-          console.error('Error updating document:', err);
-          // Emit an event to the client indicating an internal server error
-          socket.emit('internalServerError', { message: 'Internal server error' });
+            console.error('Error updating document:', err);
+            socket.emit('internalServerError', { message: 'Internal server error' });
         }
-       
-
-        // const myDB = client.db("menu");
-        // const myColl = myDB.collection(`cash`);
-
-        // const result = await myColl.insertOne(data);
-
-        // console.log(
-        //   `A document was inserted with the _id: ${result.insertedId}`,
-        // );
-        
-        // socket.broadcast.emit("recive_order", data)
-        // socket.emit("order_sent", data)
-
-      });
+    });
       
       socket.on('updateToPrepare', async (data) => {
 
