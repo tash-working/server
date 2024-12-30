@@ -1,12 +1,15 @@
-
 const express = require("express");
 const app = express();
-const http = require('http');
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const SSLCommerzPayment = require("sslcommerz-lts");
+const store_id = "yag67480e3f80d91";
+const store_passwd = "yag67480e3f80d91@ssl";
+const is_live = false; //true for live, false for sandbox
+const http = require("http");
+const { MongoClient, ServerApiVersion } = require("mongodb");
 const { Server, Socket } = require("socket.io");
-var ObjectId = require('mongodb').ObjectId;
+var ObjectId = require("mongodb").ObjectId;
 
-const cors = require('cors');
+const cors = require("cors");
 const { permission } = require("process");
 const port = process.env.PORT || 5000;
 
@@ -15,13 +18,14 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB Connection
-const uri = "mongodb+srv://inventory:inventory@cluster0.ffl8g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
+const uri =
+  "mongodb+srv://inventory:inventory@cluster0.ffl8g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
@@ -34,459 +38,310 @@ async function run() {
     const io = new Server(server, {
       cors: {
         origin: "*", // Replace with specific origins if needed
-        methods: ["GET", "POST", "PUT"]
-      }
+        methods: ["GET", "POST", "PUT"],
+      },
     });
 
     // Connect Socket.io events
-    io.on('connection', (socket) => {
-      console.log('A user connected');
+    io.on("connection", (socket) => {
+      console.log("A user connected");
 
-      // Handle incoming events (e.g., 'chat-message')
-      socket.on("send_user", async (data) => {
-
-        console.log(data);
-        const myDB = client.db("users");
-        const myColl = myDB.collection(`userLoginInfo`);
-
-
-        const isTaken = await myColl.findOne({ userName: data.userData.userName });
-        if (isTaken === null) {
-
-          const result = await myColl.insertOne(data.userData);
-
-
-
-          // console.log(result.insertedId); // Output: ObjectId("6464252729455d5810000000")
-
-          // Retrieve the full document with its _id
-          const insertedDocument = await myColl.findOne({ _id: result.insertedId });
-          console.log(insertedDocument);
-
-          socket.emit("newUser_msg", { isSigned: true, msg: "You have been signed in" });
-          socket.broadcast.emit("receive_newUser", insertedDocument);
-
-
-        } else {
-          socket.emit("newUser_msg", { isSigned: false, msg: "this username is taken" });
-        }
-
-
-
-      });
-      socket.on("send_postLike", async (data) => {
-        // console.log("data",data);
-
-        const database = client.db("users");
-        const post = database.collection("userLoginInfo");
-
-
-        const query = {
-          _id: new ObjectId(data.id)
-        };
-        // console.log(query);
-
-        const item = await post.findOne(query);
-
-        // console.log("items: ",item);
-        const posts = item.url
-        //  console.log("posts: ",posts);
-
-        let editArray = []
-        for (let i = 0; i < posts.length; i++) {
-          if (data.postId === posts[i].id) {
-            editArray = posts[i].likes
-          }
-
-        }
-
-        console.log(editArray);
-        let update = {}
-        if (data.add && !editArray.includes(data.userName)) {
-          update = {
-            $push: {
-              "url.$[elem].likes": data.userName
-            }
-          };
-
-          const filter = {
-            _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
-          };
-
-          const options = {
-            arrayFilters: [
-              {
-                "elem.id": { $eq: data.postId } // Update the object with this specific id in the url array (optional)
-              }
-            ]
-          };
-
-          const result = await post.updateOne(filter, update, options);
-
-          if (result.modifiedCount > 0) {
-            console.log("Document updated successfully:", result.modifiedCount);
-          } else {
-            console.log("No document found for the specified filter.");
-          }
-
-        } else if (!data.add && editArray.includes(data.userName)) {
-          update = {
-            $pull: {
-              "url.$[elem].likes": data.userName
-            }
-          };
-
-          const filter = {
-            _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
-          };
-
-          const options = {
-            arrayFilters: [
-              {
-                "elem.id": { $eq: data.postId } // Update the object with this specific id in the url array (optional)
-              }
-            ]
-          };
-
-          const result = await post.updateOne(filter, update, options);
-
-          if (result.modifiedCount > 0) {
-            console.log("Document updated successfully:", result.modifiedCount);
-          } else {
-            console.log("No document found for the specified filter.");
-          }
-        } else {
-          console.log("no");
-
-
-        }
-
-
-      })
-
-
-
-
-
-
-      socket.on("send_like", async (data) => {
-        console.log(data.data);
-
-        const database = client.db("users");
-        const post = database.collection("userLoginInfo");
-
-        const updateData = data.data; // Assuming 'data.data' contains an array of objects
-
-        console.log(updateData);
-
-        // Validate input data (optional, but recommended)
-        if (!Array.isArray(updateData) || updateData.length === 0) {
-          // Emit an error event to notify the client about invalid data
-          socket.emit("like_update_error", { message: "Invalid update data provided" });
-          return;
-        }
-
-        const updateDocs = updateData.map((singleData) => {
-          try {
-            // Extract values for update (adjust these based on your data structure)
-            const id = new ObjectId(`${singleData.new_id}`); // Assuming 'id' is a key in each object
-            const newTotal = singleData.new_total;
-            const newLike = singleData.new_like;
-
-            return {
-              updateOne: {
-                filter: { _id: id },
-                update: { $set: { total: newTotal, like: newLike } },
-              },
-            };
-          } catch (err) {
-            console.error(`Error processing update for ID: ${singleData.new_id}`, err);
-            return null; // Skip updating this document on error
-          }
-        });
-
-        // Filter out invalid update objects (optional, but recommended)
-        const filteredUpdateDocs = updateDocs.filter(Boolean); // Remove null values
-
-        if (filteredUpdateDocs.length === 0) {
-          // Emit an error event to notify the client about no valid updates found
-          socket.emit("like_update_error", { message: "No valid updates found" });
-          return;
-        }
-
-        try {
-          const results = await post.bulkWrite(filteredUpdateDocs);
-          const updatedCount = results.modifiedCount;
-
-          // Log the updated objects after successful update
-          // console.log("Updated objects:", filteredUpdateDocs.updateOne.update);
-          socket.broadcast.emit("like_success", { filteredUpdateDocs })
-
-          // Emit a success event to notify the client about the update status
-          socket.emit("like_update_success", { message: `${updatedCount} documents updated successfully` });
-        } catch (err) {
-          console.error("Error updating documents:", err);
-          // Emit an error event to notify the client about the update failure
-          socket.emit("like_update_error", { message: "Error updating documents" });
-        }
-      });
-
-
-
-
-
-
-
-
-
-
-      socket.on('send_order', async (data) => {
-
+      socket.on("send_order", async (data) => {
         const myDB = client.db("menu");
         const myColl = myDB.collection(`cash`);
 
         const result = await myColl.insertOne(data);
 
         console.log(
-          `A document was inserted with the _id: ${result.insertedId}`,
+          `A document was inserted with the _id: ${result.insertedId}`
         );
-        
-        socket.broadcast.emit("recive_order", data)
-        socket.emit("order_sent", data)
 
-        // const database = client.db("users");
-        // const post = database.collection("userLoginInfo");
-
-        // const updateData = data.data; // Assuming 'data.data' contains an array of objects
-
-        // console.log(updateData);
-        // console.log(data);
+        socket.broadcast.emit("recive_order", data);
+        socket.emit("order_sent", data);
       });
-      socket.on('cancel_order', async (data) => {
-        console.log('Received cancel_order:', data);
-    
+      socket.on("cancel_order", async (data) => {
+        console.log("Received cancel_order:", data);
+
         const myDB = client.db("menu");
         const myColl = myDB.collection("cash");
-    
-        const filter = { _id: new ObjectId(data._id) };
-    
-        try {
-            const updateResult = await myColl.updateOne(filter, { $set: { req: "cancel" } });
-    
-            if (updateResult.matchedCount === 0) {
-                console.log(`Document with ID ${data._id} not found.`);
-                socket.emit('documentNotFound', { message: 'Document not found' });
-            } else {
-                console.log(`Document with ID ${data._id} updated successfully.`);
-                socket.broadcast.emit('requested', { id: data._id, req: "cancel" });
-            }
-        } catch (err) {
-            console.error('Error updating document:', err);
-            socket.emit('internalServerError', { message: 'Internal server error' });
-        }
-    });
-      
-      socket.on('updateToPrepare', async (data) => {
 
+        const filter = { _id: new ObjectId(data._id) };
+
+        try {
+          const updateResult = await myColl.updateOne(filter, {
+            $set: { req: "cancel" },
+          });
+
+          if (updateResult.matchedCount === 0) {
+            console.log(`Document with ID ${data._id} not found.`);
+            socket.emit("documentNotFound", { message: "Document not found" });
+          } else {
+            console.log(`Document with ID ${data._id} updated successfully.`);
+            socket.broadcast.emit("requested", { id: data._id, req: "cancel" });
+          }
+        } catch (err) {
+          console.error("Error updating document:", err);
+          socket.emit("internalServerError", {
+            message: "Internal server error",
+          });
+        }
+      });
+
+      socket.on("updateToPrepare", async (data) => {
         const myDB = client.db("menu");
         const myColl = myDB.collection(`cash`);
         console.log(data);
-        const id = data.id
-        const filter = { _id: new ObjectId(data.id) }
-        const options = { upsert: true }
+        const id = data.id;
+        const filter = { _id: new ObjectId(data.id) };
+        const options = { upsert: true };
         if (data.status === "granted") {
           const update = {
             $set: {
-              status: "granted"
-            }
+              status: "granted",
+            },
           };
           try {
-            const updateResult = await myColl.updateOne(filter, update, options);
-        
+            const updateResult = await myColl.updateOne(
+              filter,
+              update,
+              options
+            );
+
             if (updateResult.matchedCount === 0) {
               // Emit an event to the client indicating document not found
-              socket.emit('documentNotFound', { message: 'Document not found' });
+              socket.emit("documentNotFound", {
+                message: "Document not found",
+              });
             } else {
               // Emit an event to the client indicating success
-              socket.broadcast.emit('statusGranted', { id ,status:"granted"});
+              socket.broadcast.emit("statusGranted", { id, status: "granted" });
             }
           } catch (err) {
-            console.error('Error updating document:', err);
+            console.error("Error updating document:", err);
             // Emit an event to the client indicating an internal server error
-            socket.emit('internalServerError', { message: 'Internal server error' });
+            socket.emit("internalServerError", {
+              message: "Internal server error",
+            });
           }
-        
-        }else if (data.status === "complete") {
+        } else if (data.status === "complete") {
           const update = {
             $set: {
               status: "complete",
-              orderCompleteTime: data.orderCompleteTime
-
-            }
+              orderCompleteTime: data.orderCompleteTime,
+            },
           };
           try {
-            const updateResult = await myColl.updateOne(filter, update, options);
-        
+            const updateResult = await myColl.updateOne(
+              filter,
+              update,
+              options
+            );
+
             if (updateResult.matchedCount === 0) {
               // Emit an event to the client indicating document not found
-              socket.emit('documentNotFound', { message: 'Document not found' });
+              socket.emit("documentNotFound", {
+                message: "Document not found",
+              });
             } else {
               // Emit an event to the client indicating success
-              socket.broadcast.emit('statusGranted', { id, status:"complete" });
+              socket.broadcast.emit("statusGranted", {
+                id,
+                status: "complete",
+              });
             }
           } catch (err) {
-            console.error('Error updating document:', err);
+            console.error("Error updating document:", err);
             // Emit an event to the client indicating an internal server error
-            socket.emit('internalServerError', { message: 'Internal server error' });
+            socket.emit("internalServerError", {
+              message: "Internal server error",
+            });
           }
-        }else if (data.status === "cancel") {
+        } else if (data.status === "cancel") {
           const update = {
             $set: {
               status: "cancel",
-              orderCompleteTime: data.orderCompleteTime
-
-            }
+              orderCompleteTime: data.orderCompleteTime,
+            },
           };
           try {
-            const updateResult = await myColl.updateOne(filter, update, options);
-        
+            const updateResult = await myColl.updateOne(
+              filter,
+              update,
+              options
+            );
+
             if (updateResult.matchedCount === 0) {
               // Emit an event to the client indicating document not found
-              socket.emit('documentNotFound', { message: 'Document not found' });
+              socket.emit("documentNotFound", {
+                message: "Document not found",
+              });
             } else {
               // Emit an event to the client indicating success
-              socket.broadcast.emit('statusGranted', { id, status:"cancel" });
+              socket.broadcast.emit("statusGranted", { id, status: "cancel" });
             }
           } catch (err) {
-            console.error('Error updating document:', err);
+            console.error("Error updating document:", err);
             // Emit an event to the client indicating an internal server error
-            socket.emit('internalServerError', { message: 'Internal server error' });
+            socket.emit("internalServerError", {
+              message: "Internal server error",
+            });
           }
         }
-      
-        
-       
       });
 
-
-
-
-      socket.on('disconnect', () => {
-        console.log('User disconnected');
+      socket.on("disconnect", () => {
+        console.log("User disconnected");
       });
     });
 
-    // Existing API endpoints (GET /users, POST /addPic, PUT /update)
-    app.get('/users', async (req, res) => {
+
+    // Pos
+    app.post("/PosOrder", async (req, res) => {
       try {
-        const database = client.db("users");
-        const post = database.collection("userLoginInfo");
+        // Retrieve transaction ID with error handling
+       console.log(req.body);
+       const database = client.db("pos"); // Ensure client is properly connected
+        const OrderCollection = database.collection("orders");
+        OrderCollection.insertOne(req.body).then((result) => {
+          console.log("Order inserted successfully", result._id);
+        });
+       
+      } catch (error) {
+        console.error("An unexpected error occurred:", error);
+        res.status(500).send("Internal server error. Please contact support.");
+      }
+    }); 
+
+    app.get("/PosOrder", async (req, res) => {
+      try {
+        const database = client.db("pos");
+        const post = database.collection("orders");
         const documents = await post.find({}).toArray();
 
         const data = documents;
         res.json(data);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Error fetching data:", error);
+        res.status(500).json({ message: "Server error" });
       }
     });
-    app.get(`/get_user/:user_name/:password`, async (req, res) => {
-      const database = client.db("users");
-      const post = database.collection("userLoginInfo");
-
-
-      const query = {
-        userName: req.params.user_name,
-        password: req.params.password,
-      };
-      console.log(query);
-
-      const item = await post.findOne(query);
-
-      console.log(item);
-
-      if (item === null) {
-        res.send({ permission: false })
-      } else {
-        item.password = ""
-        res.send({
-          permission: true,
-          item
-        })
-
-      }
-      // try {
-      //   const database = client.db("users");
-      //   const post = database.collection("userLoginInfo");
-      //   const documents = await post.find({}).toArray();
-
-      //   const data = documents;
-      //   res.json(data);
-      // } catch (error) {
-      //   console.error('Error fetching data:', error);
-      //   res.status(500).json({ message: 'Server error' });
-      // }
-    });
-    app.get(`/get_user/:id`, async (req, res) => {
-      const database = client.db("users");
-      const post = database.collection("userLoginInfo");
-
-
-      const query = {
-        _id: new ObjectId(req.params.id)
-      };
-      console.log(query);
-
-      const item = await post.findOne(query);
-
-      console.log(item);
-
-      if (item === null) {
-        res.send({ permission: false })
-      } else {
-        item.password = ""
-        res.send(item)
-
-      }
-      // try {
-      //   const database = client.db("users");
-      //   const post = database.collection("userLoginInfo");
-      //   const documents = await post.find({}).toArray();
-
-      //   const data = documents;
-      //   res.json(data);
-      // } catch (error) {
-      //   console.error('Error fetching data:', error);
-      //   res.status(500).json({ message: 'Server error' });
-      // }
-    });
-
-    // app.post("/addUser", async (req, res) => {
-    //   const newUser = req.body;
-    //   console.log("called");
-    //   console.log(newUser);
-
-    //   const myDB = client.db("users");
-    //   const myColl = myDB.collection(`userLoginInfo`);
-
-    //   const result = await myColl.insertOne(newUser);
-
-    //   console.log(
-    //     `A document was inserted with the _id: ${result.insertedId}`,
-    //   );
-
-    // });
-
-
-
 
 
 
 
 
     // start of order web
-    app.get('/getRecivedOrders', async (req, res) => {
+    //sslcommerz init
+    app.post("/init", (req, res) => {
+      console.log(req.body);
+      const { price, phoneNumber, sector, road, house } = req.body;
+      const tran_id = new ObjectId().toString();
 
+      const data = {
+        total_amount: price,
+        currency: "BDT",
+        tran_id: tran_id, // use unique tran_id for each api call
+        success_url: `http://localhost:5000/payment/success/${tran_id}`,
+        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
+        cancel_url: "http://localhost:3030/cancel",
+        ipn_url: "http://localhost:3030/ipn",
+        shipping_method: "Courier",
+        product_name: "food",
+        product_category: "food",
+        product_profile: "general",
+        cus_name: "Customer Name",
+        cus_email: "customer@example.com",
+        cus_add1: house,
+        cus_add2: road,
+        cus_add3: sector,
+        cus_city: "Dhaka",
+        cus_state: "Dhaka",
+        cus_postcode: "1000",
+        cus_country: "Bangladesh",
+        cus_phone: phoneNumber,
+        cus_fax: "01711111111",
+        ship_name: "Customer Name",
+        ship_add1: "Dhaka",
+        ship_add2: "Dhaka",
+        ship_city: "Dhaka",
+        ship_state: "Dhaka",
+        ship_postcode: 1000,
+        ship_country: "Bangladesh",
+      };
+
+      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
+      sslcz.init(data).then((apiResponse) => {
+        // Redirect the user to payment gateway
+        let GatewayPageURL = apiResponse.GatewayPageURL;
+        res.send({ url: GatewayPageURL });
+        console.log("Redirecting to: ", GatewayPageURL);
+        const finalOrder = req.body;
+        finalOrder.paidStatus = false;
+        finalOrder.tranId = tran_id;
+        const database = client.db("menu");
+        const collection = database.collection("cash");
+        collection.insertOne(finalOrder).then((result) => {
+          console.log("Order inserted successfully");
+        });
+      });
+    });
+    app.post("/payment/success/:tranId", async (req, res) => {
+      try {
+        // Retrieve transaction ID with error handling
+        const { tranId } = req.params;
+
+        const database = client.db("menu"); // Ensure client is properly connected
+        const OrderCollection = database.collection("cash");
+
+        // Update order with proper collection name and field
+        const filter = { tranId: tranId };
+        const update = { $set: { paidStatus: true } };
+        const options = { update: true };
+
+        const updateResult = await OrderCollection.updateOne(
+          filter,
+          update,
+          options
+        );
+
+        // Handle update success and failure scenarios
+        if (updateResult.modifiedCount > 0) {
+          console.log(
+            `Order with transaction ID ${tranId} successfully updated.`
+          );
+          res.redirect(`http://localhost:5173/payment/success/${tranId}`);
+        }
+      } catch (error) {
+        console.error("An unexpected error occurred:", error);
+        res.status(500).send("Internal server error. Please contact support.");
+      }
+    });
+    app.post("/payment/fail/:tranId", async (req, res) => {
+      try {
+        // Retrieve transaction ID with error handling
+        const { tranId } = req.params;
+
+        const database = client.db("menu"); // Ensure client is properly connected
+        const OrderCollection = database.collection("cash");
+
+        // Delete order with matching transaction ID
+        const deleteResult = await OrderCollection.deleteOne({
+          tranId: tranId,
+        });
+
+        // Handle delete success and failure scenarios
+        if (deleteResult.deletedCount > 0) {
+          console.log(
+            `Order with transaction ID ${tranId} successfully deleted.`
+          );
+          res.redirect(`http://localhost:5173/payment/failed/${tranId}`); // Redirect to a different success page for failed payment
+        }
+      } catch (error) {
+        console.error("An unexpected error occurred:", error);
+        res.status(500).send("Internal server error. Please contact support.");
+      }
+    });
+    app.get("/getRecivedOrders", async (req, res) => {
       try {
         const database = client.db("menu");
         const post = database.collection("cash");
@@ -495,12 +350,11 @@ async function run() {
         const data = documents;
         res.json(data);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Error fetching data:", error);
+        res.status(500).json({ message: "Server error" });
       }
     });
-    app.get('/getMenu', async (req, res) => {
-
+    app.get("/getMenu", async (req, res) => {
       try {
         const database = client.db("menu");
         const post = database.collection("menu");
@@ -509,248 +363,49 @@ async function run() {
         const data = documents;
         res.json(data);
       } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
+        console.error("Error fetching data:", error);
+        res.status(500).json({ message: "Server error" });
       }
     });
-
-
-
-    app.get('/getMenu/:category', async (req, res) => {
-
-      try {
-        const database = client.db("menu");
-        const post = database.collection("menu");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
-      }
-    });
-
-
-
-    // end of order web
-
-
-
-
-
-
-
-
-    app.get('/orders', async (req, res) => {
-      try {
-        const database = client.db("tables");
-        const post = database.collection("table");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
-      }
-    });
-
-    app.get('/tables/getMenu', async (req, res) => {
-      const tableNum = req.params.table_num
-      try {
-        const database = client.db("menu");
-        const post = database.collection("items");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
-      }
-    });
-
-
-
-
-
-
-
-
-
-
-    app.put('/addPick', async (req, res) => {
-      const updatedUserPic = req.body;
-      const database = client.db("users");
-      const post = database.collection("userLoginInfo");
-      const filter = { _id: new ObjectId(updatedUserPic.id) }
-      const options = { upsert: true }
-
-      console.log(updatedUserPic);
-      const update = {
-        $push: {
-          url: {
-            $each: [updatedUserPic.newUrl]
-          }
-        }
-      }
-
-      try {
-        const updateResult = await post.updateOne(filter, update, options);
-
-        if (updateResult.matchedCount === 0) {
-          return res.status(404).json({ message: 'Document not found' });
-        }
-
-        res.json({ message: 'Document updated successfully' });
-      } catch (err) {
-        console.error('Error updating document:', err);
-        res.status(500).json({ message: 'Internal server error' });
-      }
-    });
-
-
-    app.get('/get_rating', async (req, res) => {
-      try {
-        const database = client.db("rating");
-        const post = database.collection("rating");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
-      }
-    });
-    app.get('/get_rating/:id', async (req, res) => {
-      try {
-        const database = client.db("rating");
-        const post = database.collection("rating");
-        const id = req.params.id; // Get the ID from the URL parameter
-
-        const document = await post.findOne({ _id: new ObjectId(id) }); // Find the document by ID
-
-        if (document) {
-          res.json(document);
-        } else {
-          res.status(404).json({ message: 'Document not found' });
-        }
-      } catch (error) {
-        console.error('Error fetching data:', error);
-        res.status(500).json({ message: 'Server error' });
-      }
-    });
-    app.get('/rating/:id', async (req, res) => {
-      const database = client.db("rating"); // Assuming client is a MongoDB client instance
-      const post = database.collection("rating");
-      const id = req.params.id;
-
+    app.get("/getLastOrder/:tranID", async (req, res) => {
+      const { tranID } = req.params;
+      console.log(tranID);
+    
+      const database = client.db("menu");
+      const post = database.collection("cash");
+    
       try {
         // Use findOne method directly
-        const result = await post.findOne({ _id: new ObjectId(id) });
-
-        if (!result) {
-          // Handle case where no document is found
-          return res.status(404).json({ message: 'Rating not found' });
+        const result = await post.findOne({ tranID: tranID });
+    
+        if (result) {
+          res.send(result);
+        } else {
+          res.status(404).json({ message: "Order not found" });
         }
-
-        res.send(result);
       } catch (error) {
-        console.error('Error fetching rating document:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        console.error("Error fetching rating document:", error);
+        res.status(500).json({ message: "Internal server error" });
       }
     });
-    app.post('/set_rating', async (req, res) => {
-      const updatedUserPic = req.body;
-      const database = client.db("rating");
-      const post = database.collection("rating");
 
+    app.get("/getMenu/:category", async (req, res) => {
       try {
-        const updateResult = await post.insertOne(updatedUserPic);
+        const database = client.db("menu");
+        const post = database.collection("menu");
+        const documents = await post.find({}).toArray();
 
-        if (updateResult.matchedCount === 0) {
-          return res.status(404).json({ message: 'Document not found' });
-        }
-
-        res.json(updateResult);
-      } catch (err) {
-        console.error('Error updating document:', err);
-        res.status(500).json({ message: 'Internal server error' });
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        res.status(500).json({ message: "Server error" });
       }
     });
-    app.delete('/deleteRating/:id', async (req, res) => {
-      const database = client.db("rating");
-      const post = database.collection("rating");
-      const id = req.params.id
-      const query = { _id: new ObjectId(id) }
 
-      try {
-        const result = await post.deleteOne(query);
-        res.send(result)
-
-
-
-
-      } catch (err) {
-        console.error('Error deleting document:', err);
-        res.status(500).json({ message: 'Internal server error' });
-      }
-
+    app.get("/", (req, res) => {
+      res.send("Hello, World!");
     });
-    app.put('/set_rating/:id', async (req, res) => {
-      const database = client.db("rating");
-      const post = database.collection("rating");
-      const id = req.params.id
-      const filter = { _id: new ObjectId(id) }
-      const options = { update: true }
-      const updateOrder = req.body
-
-      const order = {
-        $set: {
-          foodQuality: updateOrder.foodQuality,
-          overallServiceQuality: updateOrder.overallServiceQuality,
-          cleanliness: updateOrder.cleanliness,
-          orderAccuracy: updateOrder.orderAccuracy,
-          speedOfService: updateOrder.speedOfService,
-          value: updateOrder.value,
-          overallExperience: updateOrder.overallExperience,
-          text: updateOrder.text,
-          bill: updateOrder.bill - updateOrder.bill * 0.1
-        }
-      }
-
-      try {
-        const result = await post.updateOne(filter, order, options);
-        res.send(result)
-
-
-
-
-      } catch (err) {
-        console.error('Error deleting document:', err);
-        res.status(500).json({ message: 'Internal server error' });
-      }
-
-    });
-
-    app.put('/update', async (req, res) => {
-      const database = client.db("users");
-      const post = database.collection("userLoginInfo");
-
-      const updateData = req.body; // Assuming 'req.body' contains an array of objects
-      console.log(updateData);
-
-
-
-
-    });
-    app.get('/', (req, res) => {
-      res.send('Hello, World!');
-
-    });
-
 
     // Start the server
     server.listen(port, () => {
