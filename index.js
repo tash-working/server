@@ -201,7 +201,7 @@ async function run() {
         // Retrieve transaction ID with error handling
        console.log(req.body);
        const database = client.db("pos"); // Ensure client is properly connected
-        const OrderCollection = database.collection("orders");
+        const OrderCollection = database.collection("sixzzle_orders");
         OrderCollection.insertOne(req.body).then((result) => {
           console.log("Order inserted successfully", result._id);
         });
@@ -215,7 +215,7 @@ async function run() {
     app.get("/PosOrder", async (req, res) => {
       try {
         const database = client.db("pos");
-        const post = database.collection("orders");
+        const post = database.collection("sizzle_orders");
         const documents = await post.find({}).toArray();
 
         const data = documents;
