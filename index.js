@@ -201,7 +201,7 @@ async function run() {
         // Retrieve transaction ID with error handling
        console.log(req.body);
        const database = client.db("pos"); // Ensure client is properly connected
-        const OrderCollection = database.collection("sixzzle_orders");
+        const OrderCollection = database.collection("sizzle_orders");
         OrderCollection.insertOne(req.body).then((result) => {
           console.log("Order inserted successfully", result._id);
         });
