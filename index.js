@@ -194,28 +194,42 @@ async function run() {
       });
     });
 
-
     // Pos
-    app.post("/PosOrder", async (req, res) => {
+    app.post("/:id/signin", async (req, res) => {
+      const { id } = req.params;
+
       try {
         // Retrieve transaction ID with error handling
-       console.log(req.body);
-       const database = client.db("pos"); // Ensure client is properly connected
-        const OrderCollection = database.collection("sizzle_orders");
+        console.log(req.body);
+        const database = client.db("pos"); // Ensure client is properly connected
+        const OrderCollection = database.collection(`${id}_profile`);
         OrderCollection.insertOne(req.body).then((result) => {
-          console.log("Order inserted successfully", result._id);
+          console.log("profile inserted successfully", result._id);
         });
-       
       } catch (error) {
         console.error("An unexpected error occurred:", error);
         res.status(500).send("Internal server error. Please contact support.");
       }
-    }); 
+    });
+    app.post("/PosOrder", async (req, res) => {
+      try {
+        // Retrieve transaction ID with error handling
+        console.log(req.body);
+        const database = client.db("pos"); // Ensure client is properly connected
+        const OrderCollection = database.collection("orders");
+        OrderCollection.insertOne(req.body).then((result) => {
+          console.log("Order inserted successfully", result._id);
+        });
+      } catch (error) {
+        console.error("An unexpected error occurred:", error);
+        res.status(500).send("Internal server error. Please contact support.");
+      }
+    });
 
     app.get("/PosOrder", async (req, res) => {
       try {
         const database = client.db("pos");
-        const post = database.collection("sizzle_orders");
+        const post = database.collection("orders");
         const documents = await post.find({}).toArray();
 
         const data = documents;
@@ -225,10 +239,6 @@ async function run() {
         res.status(500).json({ message: "Server error" });
       }
     });
-
-
-
-
 
     // start of order web
     //sslcommerz init
@@ -370,14 +380,14 @@ async function run() {
     app.get("/getLastOrder/:tranID", async (req, res) => {
       const { tranID } = req.params;
       console.log(tranID);
-    
+
       const database = client.db("menu");
       const post = database.collection("cash");
-    
+
       try {
         // Use findOne method directly
         const result = await post.findOne({ tranID: tranID });
-    
+
         if (result) {
           res.send(result);
         } else {
