@@ -1,21 +1,12 @@
-const express = require("express");
+const express = require('express');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const cors = require('cors');
 const app = express();
-const SSLCommerzPayment = require("sslcommerz-lts");
-const store_id = "yag67480e3f80d91";
-const store_passwd = "yag67480e3f80d91@ssl";
-const is_live = false; //true for live, false for sandbox
-const http = require("http");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-const { Server, Socket } = require("socket.io");
-var ObjectId = require("mongodb").ObjectId;
-
-const cors = require("cors");
-const { permission } = require("process");
-const port = process.env.PORT || 5000;
+const port = 5000; // Set the port to 5000
 
 // Middleware
-app.use(cors());
-app.use(express.json());
+app.use(cors()); // Enable CORS for cross-origin requests
+app.use(express.json()); // Parse incoming JSON request bodies
 
 // MongoDB Connection
 const uri =
@@ -28,403 +19,156 @@ const client = new MongoClient(uri, {
   },
 });
 
-async function run() {
+client.connect().then(() => {
+  console.log('Connected to MongoDB');
+}).catch((err) => {
+  console.error('Error connecting to MongoDB:', err);
+});
+
+// Signin route for a specific user profile
+app.post("/:id/signin", async (req, res) => {
+  const { id } = req.params;
   try {
-    await client.connect();
-    console.log("Connected to MongoDB!");
-
-    // Create HTTP server and Socket.io instance
-    const server = http.createServer(app);
-    const io = new Server(server, {
-      cors: {
-        origin: "*", // Replace with specific origins if needed
-        methods: ["GET", "POST", "PUT"],
-      },
-    });
-
-    // Connect Socket.io events
-    io.on("connection", (socket) => {
-      console.log("A user connected");
-
-      socket.on("send_order", async (data) => {
-        const myDB = client.db("menu");
-        const myColl = myDB.collection(`cash`);
-
-        const result = await myColl.insertOne(data);
-
-        console.log(
-          `A document was inserted with the _id: ${result.insertedId}`
-        );
-
-        socket.broadcast.emit("recive_order", data);
-        socket.emit("order_sent", data);
-      });
-      socket.on("cancel_order", async (data) => {
-        console.log("Received cancel_order:", data);
-
-        const myDB = client.db("menu");
-        const myColl = myDB.collection("cash");
-
-        const filter = { _id: new ObjectId(data._id) };
-
-        try {
-          const updateResult = await myColl.updateOne(filter, {
-            $set: { req: "cancel" },
-          });
-
-          if (updateResult.matchedCount === 0) {
-            console.log(`Document with ID ${data._id} not found.`);
-            socket.emit("documentNotFound", { message: "Document not found" });
-          } else {
-            console.log(`Document with ID ${data._id} updated successfully.`);
-            socket.broadcast.emit("requested", { id: data._id, req: "cancel" });
-          }
-        } catch (err) {
-          console.error("Error updating document:", err);
-          socket.emit("internalServerError", {
-            message: "Internal server error",
-          });
-        }
-      });
-
-      socket.on("updateToPrepare", async (data) => {
-        const myDB = client.db("menu");
-        const myColl = myDB.collection(`cash`);
-        console.log(data);
-        const id = data.id;
-        const filter = { _id: new ObjectId(data.id) };
-        const options = { upsert: true };
-        if (data.status === "granted") {
-          const update = {
-            $set: {
-              status: "granted",
-            },
-          };
-          try {
-            const updateResult = await myColl.updateOne(
-              filter,
-              update,
-              options
-            );
-
-            if (updateResult.matchedCount === 0) {
-              // Emit an event to the client indicating document not found
-              socket.emit("documentNotFound", {
-                message: "Document not found",
-              });
-            } else {
-              // Emit an event to the client indicating success
-              socket.broadcast.emit("statusGranted", { id, status: "granted" });
-            }
-          } catch (err) {
-            console.error("Error updating document:", err);
-            // Emit an event to the client indicating an internal server error
-            socket.emit("internalServerError", {
-              message: "Internal server error",
-            });
-          }
-        } else if (data.status === "complete") {
-          const update = {
-            $set: {
-              status: "complete",
-              orderCompleteTime: data.orderCompleteTime,
-            },
-          };
-          try {
-            const updateResult = await myColl.updateOne(
-              filter,
-              update,
-              options
-            );
-
-            if (updateResult.matchedCount === 0) {
-              // Emit an event to the client indicating document not found
-              socket.emit("documentNotFound", {
-                message: "Document not found",
-              });
-            } else {
-              // Emit an event to the client indicating success
-              socket.broadcast.emit("statusGranted", {
-                id,
-                status: "complete",
-              });
-            }
-          } catch (err) {
-            console.error("Error updating document:", err);
-            // Emit an event to the client indicating an internal server error
-            socket.emit("internalServerError", {
-              message: "Internal server error",
-            });
-          }
-        } else if (data.status === "cancel") {
-          const update = {
-            $set: {
-              status: "cancel",
-              orderCompleteTime: data.orderCompleteTime,
-            },
-          };
-          try {
-            const updateResult = await myColl.updateOne(
-              filter,
-              update,
-              options
-            );
-
-            if (updateResult.matchedCount === 0) {
-              // Emit an event to the client indicating document not found
-              socket.emit("documentNotFound", {
-                message: "Document not found",
-              });
-            } else {
-              // Emit an event to the client indicating success
-              socket.broadcast.emit("statusGranted", { id, status: "cancel" });
-            }
-          } catch (err) {
-            console.error("Error updating document:", err);
-            // Emit an event to the client indicating an internal server error
-            socket.emit("internalServerError", {
-              message: "Internal server error",
-            });
-          }
-        }
-      });
-
-      socket.on("disconnect", () => {
-        console.log("User disconnected");
-      });
-    });
-
-    // Pos
-    app.post("/:id/signin", async (req, res) => {
-      const { id } = req.params;
-
-      try {
-        // Retrieve transaction ID with error handling
-        console.log(req.body);
-        const database = client.db("pos"); // Ensure client is properly connected
-        const OrderCollection = database.collection(`${id}_profile`);
-        OrderCollection.insertOne(req.body).then((result) => {
-          console.log("profile inserted successfully", result._id);
-        });
-      } catch (error) {
-        console.error("An unexpected error occurred:", error);
-        res.status(500).send("Internal server error. Please contact support.");
-      }
-    });
-    app.post("/PosOrder", async (req, res) => {
-      try {
-        // Retrieve transaction ID with error handling
-        console.log(req.body);
-        const database = client.db("pos"); // Ensure client is properly connected
-        const OrderCollection = database.collection("orders");
-        OrderCollection.insertOne(req.body).then((result) => {
-          console.log("Order inserted successfully", result._id);
-        });
-      } catch (error) {
-        console.error("An unexpected error occurred:", error);
-        res.status(500).send("Internal server error. Please contact support.");
-      }
-    });
-
-    app.get("/PosOrder", async (req, res) => {
-      try {
-        const database = client.db("pos");
-        const post = database.collection("orders");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        res.status(500).json({ message: "Server error" });
-      }
-    });
-
-    // start of order web
-    //sslcommerz init
-    app.post("/init", (req, res) => {
-      console.log(req.body);
-      const { price, phoneNumber, sector, road, house } = req.body;
-      const tran_id = new ObjectId().toString();
-
-      const data = {
-        total_amount: price,
-        currency: "BDT",
-        tran_id: tran_id, // use unique tran_id for each api call
-        success_url: `http://localhost:5000/payment/success/${tran_id}`,
-        fail_url: `http://localhost:5000/payment/fail/${tran_id}`,
-        cancel_url: "http://localhost:3030/cancel",
-        ipn_url: "http://localhost:3030/ipn",
-        shipping_method: "Courier",
-        product_name: "food",
-        product_category: "food",
-        product_profile: "general",
-        cus_name: "Customer Name",
-        cus_email: "customer@example.com",
-        cus_add1: house,
-        cus_add2: road,
-        cus_add3: sector,
-        cus_city: "Dhaka",
-        cus_state: "Dhaka",
-        cus_postcode: "1000",
-        cus_country: "Bangladesh",
-        cus_phone: phoneNumber,
-        cus_fax: "01711111111",
-        ship_name: "Customer Name",
-        ship_add1: "Dhaka",
-        ship_add2: "Dhaka",
-        ship_city: "Dhaka",
-        ship_state: "Dhaka",
-        ship_postcode: 1000,
-        ship_country: "Bangladesh",
-      };
-
-      const sslcz = new SSLCommerzPayment(store_id, store_passwd, is_live);
-      sslcz.init(data).then((apiResponse) => {
-        // Redirect the user to payment gateway
-        let GatewayPageURL = apiResponse.GatewayPageURL;
-        res.send({ url: GatewayPageURL });
-        console.log("Redirecting to: ", GatewayPageURL);
-        const finalOrder = req.body;
-        finalOrder.paidStatus = false;
-        finalOrder.tranId = tran_id;
-        const database = client.db("menu");
-        const collection = database.collection("cash");
-        collection.insertOne(finalOrder).then((result) => {
-          console.log("Order inserted successfully");
-        });
-      });
-    });
-    app.post("/payment/success/:tranId", async (req, res) => {
-      try {
-        // Retrieve transaction ID with error handling
-        const { tranId } = req.params;
-
-        const database = client.db("menu"); // Ensure client is properly connected
-        const OrderCollection = database.collection("cash");
-
-        // Update order with proper collection name and field
-        const filter = { tranId: tranId };
-        const update = { $set: { paidStatus: true } };
-        const options = { update: true };
-
-        const updateResult = await OrderCollection.updateOne(
-          filter,
-          update,
-          options
-        );
-
-        // Handle update success and failure scenarios
-        if (updateResult.modifiedCount > 0) {
-          console.log(
-            `Order with transaction ID ${tranId} successfully updated.`
-          );
-          res.redirect(`http://localhost:5173/payment/success/${tranId}`);
-        }
-      } catch (error) {
-        console.error("An unexpected error occurred:", error);
-        res.status(500).send("Internal server error. Please contact support.");
-      }
-    });
-    app.post("/payment/fail/:tranId", async (req, res) => {
-      try {
-        // Retrieve transaction ID with error handling
-        const { tranId } = req.params;
-
-        const database = client.db("menu"); // Ensure client is properly connected
-        const OrderCollection = database.collection("cash");
-
-        // Delete order with matching transaction ID
-        const deleteResult = await OrderCollection.deleteOne({
-          tranId: tranId,
-        });
-
-        // Handle delete success and failure scenarios
-        if (deleteResult.deletedCount > 0) {
-          console.log(
-            `Order with transaction ID ${tranId} successfully deleted.`
-          );
-          res.redirect(`http://localhost:5173/payment/failed/${tranId}`); // Redirect to a different success page for failed payment
-        }
-      } catch (error) {
-        console.error("An unexpected error occurred:", error);
-        res.status(500).send("Internal server error. Please contact support.");
-      }
-    });
-    app.get("/getRecivedOrders", async (req, res) => {
-      try {
-        const database = client.db("menu");
-        const post = database.collection("cash");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        res.status(500).json({ message: "Server error" });
-      }
-    });
-    app.get("/getMenu", async (req, res) => {
-      try {
-        const database = client.db("menu");
-        const post = database.collection("menu");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        res.status(500).json({ message: "Server error" });
-      }
-    });
-    app.get("/getLastOrder/:tranID", async (req, res) => {
-      const { tranID } = req.params;
-      console.log(tranID);
-
-      const database = client.db("menu");
-      const post = database.collection("cash");
-
-      try {
-        // Use findOne method directly
-        const result = await post.findOne({ tranID: tranID });
-
-        if (result) {
-          res.send(result);
-        } else {
-          res.status(404).json({ message: "Order not found" });
-        }
-      } catch (error) {
-        console.error("Error fetching rating document:", error);
-        res.status(500).json({ message: "Internal server error" });
-      }
-    });
-
-    app.get("/getMenu/:category", async (req, res) => {
-      try {
-        const database = client.db("menu");
-        const post = database.collection("menu");
-        const documents = await post.find({}).toArray();
-
-        const data = documents;
-        res.json(data);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-        res.status(500).json({ message: "Server error" });
-      }
-    });
-
-    app.get("/", (req, res) => {
-      res.send("Hello, World!");
-    });
-
-    // Start the server
-    server.listen(port, () => {
-      console.log(`Server listening on port ${port}`);
-    });
-  } finally {
-    // Ensure client closure even on errors (uncomment if needed)
-    // await client.close();
+    console.log(req.body);
+    const database = client.db("pos");
+    const OrderCollection = database.collection(`${id}_profile`);
+    const result = await OrderCollection.insertOne(req.body);
+    console.log("Profile inserted successfully", result.insertedId);
+    res.status(201).send({ message: "Profile inserted successfully", id: result.insertedId });
+  } catch (error) {
+    console.error("An unexpected error occurred:", error);
+    res.status(500).send("Internal server error. Please contact support.");
   }
-}
+});
 
-run().catch(console.dir);
+// Create a new order for a specific user
+app.post("/PosOrder/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    console.log(req.body);
+    const database = client.db("pos");
+    const OrderCollection = database.collection(`${id}_orders`);
+    const result = await OrderCollection.insertOne(req.body);
+    console.log("Order inserted successfully", result.insertedId);
+    res.status(201).send({ message: "Order inserted successfully", id: result.insertedId });
+  } catch (error) {
+    console.error("An unexpected error occurred:", error);
+    res.status(500).send("Internal server error. Please contact support.");
+  }
+});
+
+// Get all orders for a specific user
+app.get("/PosOrder/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const database = client.db("pos");
+    const post = database.collection(`${id}_orders`);
+    const documents = await post.find({}).toArray();
+    res.json(documents);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Get the menu from the 'menu' collection
+app.get("/getMenu/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    const database = client.db("menu");
+    const post = database.collection(`${id}_menu`);
+    const documents = await post.find({}).toArray();
+    res.json(documents);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// add item to menu
+app.post("/add_item/:id", async (req, res) => {
+  const { id } = req.params;
+  try {
+    console.log(req.body);
+
+    const { category, name, price, size, selectedSize, imageUrl } = req.body;
+
+    // Validate the request body
+    if (!category || !name || !price || !imageUrl || size.some((s) => !s.size || !s.price)) {
+      return res.status(400).send("Please fill in all fields!");
+    }
+
+    // Connect to the database
+    const database = client.db("menu");
+    const menuCollection = database.collection(`${id}_menu`);
+
+    // Find the category in the menu collection
+    const menuDoc = await menuCollection.findOne({ "menu.category": category });
+
+    if (!menuDoc) {
+      // If the category doesn't exist, create a new category and add the item
+      const newItem = { name, price, size, selectedSize, imageUrl };
+      const result = await menuCollection.updateOne(
+        {},
+        {
+          $push: {
+            menu: {
+              category,
+              items: [newItem],
+            },
+          },
+        },
+        { upsert: true }
+      );
+      console.log("New category added with item:", result);
+      return res.status(201).send("Menu item added successfully!");
+    } else {
+      // If the category exists, add the item to the existing category
+      const newItem = { name, price, size, selectedSize, imageUrl };
+      const result = await menuCollection.updateOne(
+        { "menu.category": category },
+        {
+          $push: {
+            "menu.$.items": newItem,
+          },
+        }
+      );
+      console.log("Item added to existing category:", result);
+      return res.status(201).send("Menu item added successfully!");
+    }
+  } catch (error) {
+    console.error("An unexpected error occurred:", error);
+    res.status(500).send("Internal server error. Please contact support.");
+  }
+});
+
+// DElete item from menu
+app.delete('/delete_item/:id/:itemName', async (req, res) => {
+  const { id, itemName } = req.params;
+
+  try {
+    const database = client.db("menu");
+    const menuCollection = database.collection(`${id}_menu`);
+
+    // Find and delete the item from the menu collection by its name
+    const result = await menuCollection.updateOne(
+      { "menu.items.name": itemName },
+      { $pull: { "menu.$.items": { name: itemName } } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).send("Item not found.");
+    }
+
+    res.status(200).send("Item deleted successfully.");
+  } catch (error) {
+    console.error("Error deleting item:", error);
+    res.status(500).send("Internal server error.");
+  }
+});
+
+
+// Start the server
+app.listen(port, () => {
+  console.log(`Server is running on http://localhost:${port}`);
+});
