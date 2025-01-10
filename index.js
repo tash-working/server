@@ -85,6 +85,24 @@ app.get("/getMenu/:id", async (req, res) => {
   }
 });
 
+
+// delete category
+app.post("/add_item/:id/delete_category", async (req, res) => {
+  const { id } = req.params;
+  const { category } = req.body;
+
+  try {
+    await YourModel.updateOne(
+      { _id: id },
+      { $pull: { category: category } }
+    );
+    res.status(200).send({ message: "Category deleted successfully" });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to delete category", error });
+  }
+});
+
+
 // add item to menu
 app.post("/add_item/:id", async (req, res) => {
   const { id } = req.params;
