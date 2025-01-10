@@ -102,6 +102,28 @@ app.post("/add_item/:id/delete_category", async (req, res) => {
   }
 });
 
+// add category
+app.post("/add_item/:id/add_category", async (req, res) => {
+  const { id } = req.params;
+  const { category } = req.body;
+
+  if (!category || category.trim() === "") {
+    return res.status(400).send({ message: "Category is required" });
+  }
+
+  try {
+    // Update the document in the database by adding the new category
+    await YourModel.updateOne(
+      { _id: id },
+      { $addToSet: { category: category } } // $addToSet ensures no duplicates
+    );
+    res.status(200).send({ message: "Category added successfully" });
+  } catch (error) {
+    res.status(500).send({ message: "Failed to add category", error });
+  }
+});
+
+
 
 // add item to menu
 app.post("/add_item/:id", async (req, res) => {
