@@ -1,6 +1,6 @@
-const express = require('express');
-const { MongoClient, ServerApiVersion } = require('mongodb');
-const cors = require('cors');
+const express = require("express");
+const { MongoClient, ServerApiVersion } = require("mongodb");
+const cors = require("cors");
 const app = express();
 const port = 5000; // Set the port to 5000
 
@@ -19,11 +19,14 @@ const client = new MongoClient(uri, {
   },
 });
 
-client.connect().then(() => {
-  console.log('Connected to MongoDB');
-}).catch((err) => {
-  console.error('Error connecting to MongoDB:', err);
-});
+client
+  .connect()
+  .then(() => {
+    console.log("Connected to MongoDB");
+  })
+  .catch((err) => {
+    console.error("Error connecting to MongoDB:", err);
+  });
 
 // Signin route for a specific user profile
 app.post("/:id/signin", async (req, res) => {
@@ -34,7 +37,12 @@ app.post("/:id/signin", async (req, res) => {
     const OrderCollection = database.collection(`${id}_profile`);
     const result = await OrderCollection.insertOne(req.body);
     console.log("Profile inserted successfully", result.insertedId);
-    res.status(201).send({ message: "Profile inserted successfully", id: result.insertedId });
+    res
+      .status(201)
+      .send({
+        message: "Profile inserted successfully",
+        id: result.insertedId,
+      });
   } catch (error) {
     console.error("An unexpected error occurred:", error);
     res.status(500).send("Internal server error. Please contact support.");
@@ -50,7 +58,9 @@ app.post("/PosOrder/:id", async (req, res) => {
     const OrderCollection = database.collection(`${id}_orders`);
     const result = await OrderCollection.insertOne(req.body);
     console.log("Order inserted successfully", result.insertedId);
-    res.status(201).send({ message: "Order inserted successfully", id: result.insertedId });
+    res
+      .status(201)
+      .send({ message: "Order inserted successfully", id: result.insertedId });
   } catch (error) {
     console.error("An unexpected error occurred:", error);
     res.status(500).send("Internal server error. Please contact support.");
@@ -85,24 +95,34 @@ app.get("/getMenu/:id", async (req, res) => {
   }
 });
 
-
-// delete category
-app.post("/add_item/:id/delete_category", async (req, res) => {
+app.delete("/add_item/:id/delete_category", async (req, res) => {
   const { id } = req.params;
   const { category } = req.body;
 
+  if (!category || category.trim() === "") {
+    return res.status(400).send({ message: "Category is required" });
+  }
+
   try {
-    await YourModel.updateOne(
-      { _id: id },
-      { $pull: { category: category } }
+    const database = client.db("menu");
+    const menuCollection = database.collection(`${id}_menu`);
+
+    const result = await menuCollection.updateOne(
+      { "menu.category": category }, // Match any document in the collection
+      { $pull: { category: category } } // Remove the category from the array
     );
-    res.status(200).send({ message: "Category deleted successfully" });
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).send("Category not found.");
+    }
+
+    res.status(200).send("Category deleted successfully.");
   } catch (error) {
-    res.status(500).send({ message: "Failed to delete category", error });
+    console.error("Error deleting category:", error);
+    res.status(500).send("Internal server error.");
   }
 });
 
-// add category
 app.post("/add_item/:id/add_category", async (req, res) => {
   const { id } = req.params;
   const { category } = req.body;
@@ -112,18 +132,24 @@ app.post("/add_item/:id/add_category", async (req, res) => {
   }
 
   try {
-    // Update the document in the database by adding the new category
-    await YourModel.updateOne(
-      { _id: id },
-      { $addToSet: { category: category } } // $addToSet ensures no duplicates
+    const database = client.db("menu");
+    const menuCollection = database.collection(`${id}_menu`);
+
+    const result = await menuCollection.updateOne(
+      { "menu.category": category }, // Match any document in the collection
+      { $addToSet: { category: category } } // Add the category if it doesn't already exist
     );
-    res.status(200).send({ message: "Category added successfully" });
+
+    if (result.modifiedCount === 0) {
+      return res.status(404).send("No document found to update.");
+    }
+
+    res.status(200).send("Category added successfully.");
   } catch (error) {
-    res.status(500).send({ message: "Failed to add category", error });
+    console.error("Error adding category:", error);
+    res.status(500).send("Internal server error.");
   }
 });
-
-
 
 // add item to menu
 app.post("/add_item/:id", async (req, res) => {
@@ -134,7 +160,13 @@ app.post("/add_item/:id", async (req, res) => {
     const { category, name, price, size, selectedSize, imageUrl } = req.body;
 
     // Validate the request body
-    if (!category || !name || !price || !imageUrl || size.some((s) => !s.size || !s.price)) {
+    if (
+      !category ||
+      !name ||
+      !price ||
+      !imageUrl ||
+      size.some((s) => !s.size || !s.price)
+    ) {
       return res.status(400).send("Please fill in all fields!");
     }
 
@@ -183,7 +215,7 @@ app.post("/add_item/:id", async (req, res) => {
 });
 
 // DElete item from menu
-app.delete('/delete_item/:id/:itemName', async (req, res) => {
+app.delete("/delete_item/:id/:itemName", async (req, res) => {
   const { id, itemName } = req.params;
 
   try {
@@ -204,6 +236,38 @@ app.delete('/delete_item/:id/:itemName', async (req, res) => {
   } catch (error) {
     console.error("Error deleting item:", error);
     res.status(500).send("Internal server error.");
+  }
+});
+
+
+
+
+app.get("/api/posts", async (req, res) => {
+  try {
+    const database = client.db("editor");
+const postsCollection = database.collection("posts");
+    const posts = await postsCollection.find({}).toArray();
+    res.status(200).json(posts);
+  } catch (error) {
+    console.error("Error fetching posts:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
+// Create a new post
+app.post("/api/posts", async (req, res) => {
+  try {
+    const database = client.db("editor");
+const postsCollection = database.collection("posts");
+    const newPost = req.body;
+    const result = await postsCollection.insertOne(newPost);
+    res.status(201).json({
+      message: "Post created successfully",
+      id: result.insertedId,
+    });
+  } catch (error) {
+    console.error("Error creating post:", error);
+    res.status(500).json({ message: "Internal server error" });
   }
 });
 
