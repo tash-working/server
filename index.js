@@ -48,6 +48,8 @@ app.get("/collections", async (req, res) => {
 
 app.post("/:id/create_id", async (req, res) => {
   const { id } = req.params; // Get the id from the URL parameter
+  const data = req.body;
+  console.log(data);
   try {
     // Convert the 'id' from the URL parameter to an ObjectId
    // Convert the string to ObjectId
@@ -58,7 +60,12 @@ app.post("/:id/create_id", async (req, res) => {
     // Create the new post with the ObjectId from the URL as 'id'
     const newPost = {
       user_id: id, // Use the ObjectId as 'id'
-      profilePic : ""
+      profilePic : "",
+      first_name: "name",
+      last_name : "",
+      bio: "",
+      email: data.email,
+      phone: "",
     };
 
     const result = await postsCollection.insertOne(newPost);
