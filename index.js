@@ -40,8 +40,8 @@ app.get("/collections", async (req, res) => {
   }
 });
 
-  
- 
+
+
 
 
 
@@ -52,7 +52,7 @@ app.post("/:id/create_id", async (req, res) => {
   console.log(data);
   try {
     // Convert the 'id' from the URL parameter to an ObjectId
-   // Convert the string to ObjectId
+    // Convert the string to ObjectId
 
     const database = client.db(`leo_profile`);
     const postsCollection = database.collection(`${id}`);
@@ -60,9 +60,9 @@ app.post("/:id/create_id", async (req, res) => {
     // Create the new post with the ObjectId from the URL as 'id'
     const newPost = {
       user_id: id, // Use the ObjectId as 'id'
-      profilePic : "",
+      profilePic: "",
       first_name: "name",
-      last_name : "",
+      last_name: "",
       bio: "",
       email: data.email,
       phone: "",
@@ -94,13 +94,14 @@ app.post("/:id/uploadPP", async (req, res) => {
     // const userId = new ObjectId(id);
 
     // Get the user collection and update the profile picture
-    
+
     const database = client.db(`leo_profile`);
     const postsCollection = database.collection(`${id}`);
 
     const result = await postsCollection.updateOne(
-      { 
-        user_id: id }, // Find the user by _id
+      {
+        user_id: id
+      }, // Find the user by _id
       { $set: { profilePic: imageUrl } } // Set the profilePic field to the new image URL
     );
 
@@ -116,14 +117,14 @@ app.post("/:id/uploadPP", async (req, res) => {
   }
 });
 
-  
+
 
 
 
 
 
 app.get("/:id/get_id", async (req, res) => {
-  const { id} = req.params;
+  const { id } = req.params;
   try {
     const database = client.db(`leo_profile`);
     const postsCollection = database.collection(`${id}`);
@@ -135,10 +136,10 @@ app.get("/:id/get_id", async (req, res) => {
   }
 });
 app.get("/:id/api/posts", async (req, res) => {
-  const { id} = req.params;
+  const { id } = req.params;
   try {
     const database = client.db(`leo_posts`);
-const postsCollection = database.collection(`${id}`);
+    const postsCollection = database.collection(`${id}`);
     const posts = await postsCollection.find({}).toArray();
     res.status(200).json(posts);
   } catch (error) {
@@ -147,23 +148,89 @@ const postsCollection = database.collection(`${id}`);
   }
 });
 
+// Add this route to your server code
+app.post("/:id/updateProfile", async (req, res) => {
+  const { id } = req.params; // Get the user ID from the URL parameter
+  const { first_name, last_name, bio } = req.body; // Get updated profile data from the request body
+
+  try {
+    // Validate that required fields are provided
+    if (!first_name || !last_name || !bio) {
+      return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Get the user collection and update the profile
+    const database = client.db(`leo_profile`);
+    const postsCollection = database.collection(`${id}`);
+
+    const result = await postsCollection.updateOne(
+      { user_id: id }, // Find the user by user_id
+      { $set: { first_name, last_name, bio } } // Update the profile fields
+    );
+
+    // Check if a user was found and updated
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "User not found or no changes made" });
+    }
+
+    res.status(200).json({ message: "Profile updated successfully" });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 // Create a new post
 app.post("/:id/api/posts", async (req, res) => {
-  const { id} = req.params;
+  const { id } = req.params;
   try {
     const database = client.db(`leo_posts`);
-const postsCollection = database.collection(`${id}`);
-    const newPost = req.body;
+    const postsCollection = database.collection(`${id}`);
+    
+    // Get current date and time
+    const timestamp = new Date(); 
+
+    // Attach date and time to the post
+    const newPost = {
+      ...req.body,
+      createdAt: timestamp, // Stores both date & time in ISO format
+    };
+
     const result = await postsCollection.insertOne(newPost);
+
     res.status(201).json({
       message: "Post created successfully",
       id: result.insertedId,
+      createdAt: timestamp, // Send timestamp in response as well
     });
   } catch (error) {
     console.error("Error creating post:", error);
     res.status(500).json({ message: "Internal server error" });
   }
 });
+
+
+app.delete("/:id/api/posts/:postId", async (req, res) => {
+  const { id, postId } = req.params; // Get user ID and post ID from URL params
+
+  try {
+    const database = client.db("leo_posts");
+    const postsCollection = database.collection(`${id}`);
+
+    // Delete the post by its _id
+    const result = await postsCollection.deleteOne({ _id: new ObjectId(postId) });
+
+    if (result.deletedCount === 0) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    res.status(200).json({ message: "Post deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting post:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 
 // Start the server
