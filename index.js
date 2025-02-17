@@ -282,12 +282,45 @@ app.delete("/:id/api/posts/:postId", async (req, res) => {
   }
 });
 
+app.post("/:id/updatePlasticData", async (req, res) => {
+  const { id } = req.params; // Get the user ID from the URL parameter
+  const plasticData = req.body; // Get the updated plastic data from the request body
+
+  try {
+    // Validate that the plastic data is provided
+    if (!plasticData || typeof plasticData !== "object" || Object.keys(plasticData).length === 0) {
+      return res.status(400).json({ message: "Invalid plastic data provided" });
+    }
+
+    // Get the user collection
+    const database = client.db("leo_profile");
+    const postsCollection = database.collection(`${id}`);
+
+    // Update the plastic data in the user's collection
+    const result = await postsCollection.updateOne(
+      { user_id: id }, // Find the user by user_id
+      { $set: { plasticData } } // Update the plasticData field
+    );
+
+    // Check if a user was found and updated
+    if (result.modifiedCount === 0) {
+      return res.status(404).json({ message: "User not found or no changes made" });
+    }
+
+    res.status(200).json({ message: "Plastic data updated successfully" });
+  } catch (error) {
+    console.error("Error updating plastic data:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
+
 
 
 // Start the server
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
+
 
 
 
