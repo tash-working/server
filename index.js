@@ -313,6 +313,51 @@ app.post("/:id/updatePlasticData", async (req, res) => {
     res.status(500).json({ message: "Internal server error" });
   }
 });
+app.put("/:userId/api/posts/:postId", async (req, res) => {
+  const { userId, postId } = req.params;
+  const { content } = req.body;
+  console.log(userId);
+
+  try {
+    // Ensure content is provided
+    if (!content) {
+      return res.status(400).json({ error: "Content is required" });
+    }
+
+    // Access the posts collection for the specific user
+    const database = client.db("leo_posts");
+    const postsCollection = database.collection(`${userId}`);
+
+    // Find the post by its ID
+    const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+    if (!post) {
+      return res.status(404).json({ error: "Post not found" });
+    }
+
+    // Ensure the user owns the post (or remove this check if not needed)
+
+
+    // Update the post content
+    const result = await postsCollection.updateOne(
+      { _id: new ObjectId(postId) },
+      { $set: { content } }
+    );
+
+    // Check if the update was successful
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({ error: "Post content update failed" });
+    }
+
+    // Respond with the updated post (or just send a success message)
+    res.status(200).json({ message: "Post updated successfully" });
+    
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to update post" });
+  }
+});
+
+
 
 
 
