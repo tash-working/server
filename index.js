@@ -245,6 +245,9 @@ app.post("/:id/api/posts", async (req, res) => {
     const newPost = {
       ...req.body,
       createdAt: timestamp, // Stores both date & time in ISO format
+      like: 0,
+      Comment: [],
+      likedBy: [],
     };
 
     const result = await postsCollection.insertOne(newPost);
@@ -356,6 +359,121 @@ app.put("/:userId/api/posts/:postId", async (req, res) => {
     res.status(500).json({ error: "Failed to update post" });
   }
 });
+// Like/Unlike a Post
+app.put("/:userId/api/posts/:postId/like", async (req, res) => {
+  const { userId, postId } = req.params;
+  const { id } = req.body;
+
+  try {
+    console.log(`Received like/unlike request for userId: ${userId}, postId: ${postId}`);
+
+    const database = client.db("leo_posts");
+    const postsCollection = database.collection(`${userId}`);
+
+    // Validate postId
+    if (!ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: "Invalid postId" });
+    }
+
+    // Find the post
+    const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if the user has already liked the post
+    const hasLiked = post.likedBy && post.likedBy.includes(id);
+
+    let updateQuery;
+    if (hasLiked) {
+      // Unlike the post: remove user ID from likedBy and decrement like count
+      updateQuery = {
+        $pull: { likedBy: id }, // Remove user ID from likedBy array
+        $inc: { like: -1 }, // Decrement the like count
+      };
+    } else {
+      // Like the post: add user ID to likedBy and increment like count
+      updateQuery = {
+        $push: { likedBy: id }, // Add user ID to likedBy array
+        $inc: { like: 1 }, // Increment the like count
+      };
+    }
+
+    // Update the post
+    const result = await postsCollection.updateOne(
+      { _id: new ObjectId(postId) },
+      updateQuery
+    );
+
+    console.log("Update result:", result);
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({ message: "Failed to update like status" });
+    }
+
+    // Fetch the updated post to get the new like count
+    const updatedPost = await postsCollection.findOne({ _id: new ObjectId(postId) });
+
+    res.status(200).json({
+      message: hasLiked ? "Post unliked successfully" : "Post liked successfully",
+      like: updatedPost.like,
+      liked: !hasLiked, // Return the new liked status
+    });
+  } catch (error) {
+    console.error("Error updating like status:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+// Add a Comment to a Post
+app.post("/:userId/api/posts/:postId/comment", async (req, res) => {
+  const { userId, postId } = req.params;
+  const { comment, id } = req.body;
+  console.log(id);
+  
+
+  try {
+    console.log(`Received comment request for userId: ${userId}, postId: ${postId}`);
+
+    const database = client.db("leo_posts");
+    const postsCollection = database.collection(`${userId}`);
+
+    // Validate postId
+    if (!ObjectId.isValid(postId)) {
+      return res.status(400).json({ message: "Invalid postId" });
+    }
+
+    // Validate the comment
+    if (!comment || typeof comment !== "string" || comment.trim() === "") {
+      return res.status(400).json({ message: "Invalid comment" });
+    }
+
+    // Add the comment to the post
+    const newComment = {
+      userId: id,
+      comment,
+      createdAt: new Date(),
+    };
+
+    const result = await postsCollection.updateOne(
+      { _id: new ObjectId(postId) },
+      { $push: { Comment: newComment } }
+    );
+
+    console.log("Update result:", result);
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({ message: "Failed to add comment" });
+    }
+
+    res.status(201).json({ message: "Comment added successfully", comment: newComment });
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+
+
+
 
 
 
@@ -365,5 +483,4 @@ app.put("/:userId/api/posts/:postId", async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
-
 
