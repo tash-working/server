@@ -57,36 +57,7 @@ app.post("/:id/create_id", async (req, res) => {
     const database = client.db(`leo_profile`);
     const postsCollection = database.collection(`${id}`);
 
-    // Create the new post with the ObjectId from the URL as 'id'
-    // const newPost = {
-    //   user_id: id, // Use the ObjectId as 'id'
-    //   profilePic: "",
-    //   first_name: "name",
-    //   last_name: "",
-    //   bio: "",
-    //   email: data.email,
-    //   phone: "",
-    //   badges : [
-    //     {
-    //       id: 1,
-    //       name: "Eco Explorer",
-    //       description: "Awarded to new contributors for their first steps in recycling and awareness.",
-    //       image: "https://i.imgur.com/1pJ6QzQ.png", // Replace with actual badge image URL
-    //     },
-    //     {
-    //       id: 2,
-    //       name: "Green Guardian",
-    //       description: "Given to active members who frequently blog, recycle, or trade plastics.",
-    //       image: "https://i.imgur.com/3mEJ8Qj.png", // Replace with actual badge image URL
-    //     },
-    //     {
-    //       id: 3,
-    //       name: "Climate Champion",
-    //       description: "The highest honor for contributors making a major impact in plastic reduction.",
-    //       image: "https://i.imgur.com/5L7yX5R.png", // Replace with actual badge image URL
-    //     }
-    //   ]
-    // };
+   
     const newPost = {
       user_id: id, // Convert ObjectId to string if necessary
       profilePic: "", // Provide a default image or null
@@ -96,6 +67,10 @@ app.post("/:id/create_id", async (req, res) => {
       email: data.email,
       ecoPoint: 0,
       phone: "",
+      country: data.country,
+      city: data.city,
+      profession: data.profession,
+      gender: data.gender,
       badges: [
         {
           id: 1,
@@ -363,6 +338,8 @@ app.put("/:userId/api/posts/:postId", async (req, res) => {
 app.put("/:userId/api/posts/:postId/like", async (req, res) => {
   const { userId, postId } = req.params;
   const { id } = req.body;
+  console.log(id);
+  
 
   try {
     console.log(`Received like/unlike request for userId: ${userId}, postId: ${postId}`);
