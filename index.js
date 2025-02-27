@@ -404,28 +404,22 @@ app.put("/:userId/api/posts/:postId/like", async (req, res) => {
 // Add a Comment to a Post
 app.post("/:userId/api/posts/:postId/comment", async (req, res) => {
   const { userId, postId } = req.params;
-  const { comment, id } = req.body;
-  console.log(id);
-  
+  const { comment, id } = req.body; // `id` represents the user who made the comment
+
+  if (!ObjectId.isValid(postId)) {
+    return res.status(400).json({ message: "Invalid postId" });
+  }
+
+  if (!comment || typeof comment !== "string" || comment.trim() === "") {
+    return res.status(400).json({ message: "Invalid comment" });
+  }
 
   try {
-    console.log(`Received comment request for userId: ${userId}, postId: ${postId}`);
-
     const database = client.db("leo_posts");
     const postsCollection = database.collection(`${userId}`);
 
-    // Validate postId
-    if (!ObjectId.isValid(postId)) {
-      return res.status(400).json({ message: "Invalid postId" });
-    }
-
-    // Validate the comment
-    if (!comment || typeof comment !== "string" || comment.trim() === "") {
-      return res.status(400).json({ message: "Invalid comment" });
-    }
-
-    // Add the comment to the post
     const newComment = {
+      commentId: new ObjectId(), // Generate unique ObjectId for each comment
       userId: id,
       comment,
       createdAt: new Date(),
@@ -435,8 +429,6 @@ app.post("/:userId/api/posts/:postId/comment", async (req, res) => {
       { _id: new ObjectId(postId) },
       { $push: { Comment: newComment } }
     );
-
-    console.log("Update result:", result);
 
     if (result.modifiedCount === 0) {
       return res.status(400).json({ message: "Failed to add comment" });
@@ -448,9 +440,56 @@ app.post("/:userId/api/posts/:postId/comment", async (req, res) => {
     res.status(500).json({ message: "Internal server error", error: error.message });
   }
 });
+app.put("/:userId/api/posts/:postId/comment/:commentId", async (req, res) => {
+  const { userId, postId, commentId } = req.params;
+  const { comment } = req.body;
 
+  if (!comment || typeof comment !== "string" || comment.trim() === "") {
+    return res.status(400).json({ message: "Invalid comment" });
+  }
 
+  try {
+    const database = client.db("leo_posts");
+    const postsCollection = database.collection(`${userId}`);
 
+    const result = await postsCollection.updateOne(
+      { _id: new ObjectId(postId), "Comment.commentId": new ObjectId(commentId) },
+      { $set: { "Comment.$.comment": comment } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({ message: "Failed to update comment" });
+    }
+
+    res.status(200).json({ message: "Comment updated successfully" });
+  } catch (error) {
+    console.error("Error updating comment:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
+
+app.delete("/:userId/api/posts/:postId/comment/:commentId", async (req, res) => {
+  const { userId, postId, commentId } = req.params;
+
+  try {
+    const database = client.db("leo_posts");
+    const postsCollection = database.collection(`${userId}`);
+
+    const result = await postsCollection.updateOne(
+      { _id: new ObjectId(postId) },
+      { $pull: { Comment: { commentId: new ObjectId(commentId) } } }
+    );
+
+    if (result.modifiedCount === 0) {
+      return res.status(400).json({ message: "Failed to delete comment" });
+    }
+
+    res.status(200).json({ message: "Comment deleted successfully" });
+  } catch (error) {
+    console.error("Error deleting comment:", error);
+    res.status(500).json({ message: "Internal server error", error: error.message });
+  }
+});
 
 
 
@@ -460,5 +499,4 @@ app.post("/:userId/api/posts/:postId/comment", async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
-
 
