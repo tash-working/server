@@ -27,6 +27,27 @@ client
   .then(() => console.log("Connected to MongoDB"))
   .catch((err) => console.error("Error connecting to MongoDB:", err));
 
+  app.post("/api/yes-click", async (req, res) => {
+    try {
+      const database = client.db("yes"); // Use the "yes" database
+      const postsCollection = database.collection("clicked"); // Use the "clicked" collection
+  
+      // Increment the counter by 1 (or initialize it to 1 if it doesn't exist)
+      const result = await postsCollection.updateOne(
+        { _id: "yesCounter" }, // Query to find the document
+        { $inc: { count: 1 } }, // Increment the count field by 1
+        { upsert: true } // Create the document if it doesn't exist
+      );
+  
+      res.status(200).json({ message: "Yes click recorded", result });
+    } catch (error) {
+      console.error("Error recording yes click:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // API endpoint to get the total number of "Yes" clicks
+
 app.get("/collections", async (req, res) => {
   try {
     const db = client.db("leo_profile"); // Replace with your actual DB name
