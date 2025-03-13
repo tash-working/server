@@ -695,6 +695,19 @@ async function resolveRound(room) {
   }
 }
 
+app.get("/", async (req, res) => {
+  try {
+    const collection = db.collection("rooms");
+    const roomData = await collection.findOne({ room: req.params.room });
+    res.status(200).json({
+     
+      status: "ok"
+    });
+  } catch (error) {
+    console.error("Error fetching players:", error);
+    res.status(500).json({ message: "Internal server error" });
+  }
+});
 app.get("/players/:room", async (req, res) => {
   try {
     const collection = db.collection("rooms");
