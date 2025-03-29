@@ -1,794 +1,765 @@
-// const express = require("express");
-// const { MongoClient, ServerApiVersion } = require("mongodb");
-// const cors = require("cors");
-// const { ObjectId } = require("mongodb");
-// const app = express();
-// const port = 5000; // Set the port to 5000
-
-// // Middleware
-// app.use(cors()); // Enable CORS for cross-origin requests
-// app.use(express.json()); // Parse incoming JSON request bodies
-
-// // MongoDB Connection
-// const uri =
-//   "mongodb+srv://inventory:inventory@cluster0.ffl8g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
-
-// const client = new MongoClient(uri, {
-//   serverApi: {
-//     version: ServerApiVersion.v1,
-//     strict: true,
-//     deprecationErrors: true,
-//   },
-// });
-
-// // Connect once and keep the connection open
-// client
-//   .connect()
-//   .then(() => console.log("Connected to MongoDB"))
-//   .catch((err) => console.error("Error connecting to MongoDB:", err));
-
-//   app.post("/api/yes-click", async (req, res) => {
-//     try {
-//       const database = client.db("yes"); // Use the "yes" database
-//       const postsCollection = database.collection("clicked"); // Use the "clicked" collection
-  
-//       // Increment the counter by 1 (or initialize it to 1 if it doesn't exist)
-//       const result = await postsCollection.updateOne(
-//         { _id: "yesCounter" }, // Query to find the document
-//         { $inc: { count: 1 } }, // Increment the count field by 1
-//         { upsert: true } // Create the document if it doesn't exist
-//       );
-  
-//       res.status(200).json({ message: "Yes click recorded", result });
-//     } catch (error) {
-//       console.error("Error recording yes click:", error);
-//       res.status(500).json({ message: "Internal server error" });
-//     }
-//   });
-
-//   // API endpoint to get the total number of "Yes" clicks
-
-// app.get("/collections", async (req, res) => {
-//   try {
-//     const db = client.db("leo_profile"); // Replace with your actual DB name
-//     const collections = await db.listCollections().toArray();
-//     const collectionNames = collections.map((col) => col.name);
-
-//     res.json({ collections: collectionNames });
-//   } catch (error) {
-//     console.error("Error fetching collections:", error);
-//     res.status(500).json({ error: "Failed to fetch collections" });
-//   }
-// });
-
-
-
-
-
-
-
-// app.post("/:id/create_id", async (req, res) => {
-//   const { id } = req.params; // Get the id from the URL parameter
-//   const data = req.body;
-//   console.log(data);
-//   try {
-//     // Convert the 'id' from the URL parameter to an ObjectId
-//     // Convert the string to ObjectId
-
-//     const database = client.db(`leo_profile`);
-//     const postsCollection = database.collection(`${id}`);
-
-   
-//     const newPost = {
-//       user_id: id, // Convert ObjectId to string if necessary
-//       profilePic: "", // Provide a default image or null
-//       first_name: "name",
-//       last_name: "",
-//       bio: "",
-//       email: data.email,
-//       ecoPoint: 0,
-//       phone: "",
-//       country: data.country,
-//       city: data.city,
-//       profession: data.profession,
-//       gender: data.gender,
-//       badges: [
-//         {
-//           id: 1,
-//           name: "Eco Explorer",
-//           description: "Awarded to new contributors for their first steps in recycling and awareness.",
-          
-//         },
-//         {
-//           id: 2,
-//           name: "Green Guardian",
-//           description: "Given to active members who frequently blog, recycle, or trade plastics.",
-
-//         },
-//         {
-//           id: 3,
-//           name: "Climate Champion",
-//           description: "The highest honor for contributors making a major impact in plastic reduction.",
-
-//         }
-//       ]
-//     };
-    
-
-//     const result = await postsCollection.insertOne(newPost);
-
-//     res.status(201).json({
-//       message: "Post created successfully",
-//       id: newPost.id, // Return the custom 'id' (ObjectId)
-//     });
-//   } catch (error) {
-//     console.error("Error creating post:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-
-// app.post("/:id/uploadPP", async (req, res) => {
-//   const { id } = req.params; // Get the user ID from URL parameter
-//   const { imageUrl } = req.body; // Get the image URL from the request body
-
-//   try {
-//     // Validate that the image URL is provided
-//     if (!imageUrl) {
-//       return res.status(400).json({ message: "Image URL is required" });
-//     }
-
-//     // Convert the 'id' to ObjectId (assuming it's stored as ObjectId in MongoDB)
-//     // const userId = new ObjectId(id);
-
-//     // Get the user collection and update the profile picture
-
-//     const database = client.db(`leo_profile`);
-//     const postsCollection = database.collection(`${id}`);
-
-//     const result = await postsCollection.updateOne(
-//       {
-//         user_id: id
-//       }, // Find the user by _id
-//       { $set: { profilePic: imageUrl } } // Set the profilePic field to the new image URL
-//     );
-
-//     // Check if a user was found and updated
-//     if (result.modifiedCount === 0) {
-//       return res.status(404).json({ message: "User not found or no changes made" });
-//     }
-
-//     res.status(200).json({ message: "Profile picture updated successfully" });
-//   } catch (error) {
-//     console.error("Error updating profile picture:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-
-
-
-
-
-
-
-// app.get("/:id/get_id", async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     const database = client.db(`leo_profile`);
-//     const postsCollection = database.collection(`${id}`);
-//     const posts = await postsCollection.find({}).toArray();
-//     res.status(200).json(posts);
-//   } catch (error) {
-//     console.error("Error fetching posts:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-// app.get("/:id/api/posts", async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     const database = client.db(`leo_posts`);
-//     const postsCollection = database.collection(`${id}`);
-//     const posts = await postsCollection.find({}).toArray();
-//     res.status(200).json(posts);
-//   } catch (error) {
-//     console.error("Error fetching posts:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-
-// // Add this route to your server code
-// app.post("/:id/updateProfile", async (req, res) => {
-//   const { id } = req.params; // Get the user ID from the URL parameter
-//   const { first_name, last_name, bio } = req.body; // Get updated profile data from the request body
-
-//   try {
-//     // Validate that required fields are provided
-//     if (!first_name || !last_name || !bio) {
-//       return res.status(400).json({ message: "All fields are required" });
-//     }
-
-//     // Get the user collection and update the profile
-//     const database = client.db(`leo_profile`);
-//     const postsCollection = database.collection(`${id}`);
-
-//     const result = await postsCollection.updateOne(
-//       { user_id: id }, // Find the user by user_id
-//       { $set: { first_name, last_name, bio } } // Update the profile fields
-//     );
-
-//     // Check if a user was found and updated
-//     if (result.modifiedCount === 0) {
-//       return res.status(404).json({ message: "User not found or no changes made" });
-//     }
-
-//     res.status(200).json({ message: "Profile updated successfully" });
-//   } catch (error) {
-//     console.error("Error updating profile:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-
-// // Create a new post
-// app.post("/:id/api/posts", async (req, res) => {
-//   const { id } = req.params;
-//   try {
-//     const database = client.db(`leo_posts`);
-//     const postsCollection = database.collection(`${id}`);
-    
-//     // Get current date and time
-//     const timestamp = new Date(); 
-
-//     // Attach date and time to the post
-//     const newPost = {
-//       ...req.body,
-//       createdAt: timestamp, // Stores both date & time in ISO format
-//       like: 0,
-//       Comment: [],
-//       likedBy: [],
-//     };
-
-//     const result = await postsCollection.insertOne(newPost);
-
-//     res.status(201).json({
-//       message: "Post created successfully",
-//       id: result.insertedId,
-//       createdAt: timestamp, // Send timestamp in response as well
-//     });
-//   } catch (error) {
-//     console.error("Error creating post:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-
-
-// app.delete("/:id/api/posts/:postId", async (req, res) => {
-//   const { id, postId } = req.params; // Get user ID and post ID from URL params
-
-//   try {
-//     const database = client.db("leo_posts");
-//     const postsCollection = database.collection(`${id}`);
-
-//     // Delete the post by its _id
-//     const result = await postsCollection.deleteOne({ _id: new ObjectId(postId) });
-
-//     if (result.deletedCount === 0) {
-//       return res.status(404).json({ message: "Post not found" });
-//     }
-
-//     res.status(200).json({ message: "Post deleted successfully" });
-//   } catch (error) {
-//     console.error("Error deleting post:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-
-// app.post("/:id/updatePlasticData", async (req, res) => {
-//   const { id } = req.params; // Get the user ID from the URL parameter
-//   const plasticData = req.body; // Get the updated plastic data from the request body
-
-//   try {
-//     // Validate that the plastic data is provided
-//     if (!plasticData || typeof plasticData !== "object" || Object.keys(plasticData).length === 0) {
-//       return res.status(400).json({ message: "Invalid plastic data provided" });
-//     }
-
-//     // Get the user collection
-//     const database = client.db("leo_profile");
-//     const postsCollection = database.collection(`${id}`);
-
-//     // Update the plastic data in the user's collection
-//     const result = await postsCollection.updateOne(
-//       { user_id: id }, // Find the user by user_id
-//       { $set: { plasticData } } // Update the plasticData field
-//     );
-
-//     // Check if a user was found and updated
-//     if (result.modifiedCount === 0) {
-//       return res.status(404).json({ message: "User not found or no changes made" });
-//     }
-
-//     res.status(200).json({ message: "Plastic data updated successfully" });
-//   } catch (error) {
-//     console.error("Error updating plastic data:", error);
-//     res.status(500).json({ message: "Internal server error" });
-//   }
-// });
-// app.put("/:userId/api/posts/:postId", async (req, res) => {
-//   const { userId, postId } = req.params;
-//   const { content } = req.body;
-//   console.log(userId);
-
-//   try {
-//     // Ensure content is provided
-//     if (!content) {
-//       return res.status(400).json({ error: "Content is required" });
-//     }
-
-//     // Access the posts collection for the specific user
-//     const database = client.db("leo_posts");
-//     const postsCollection = database.collection(`${userId}`);
-
-//     // Find the post by its ID
-//     const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
-//     if (!post) {
-//       return res.status(404).json({ error: "Post not found" });
-//     }
-
-//     // Ensure the user owns the post (or remove this check if not needed)
-
-
-//     // Update the post content
-//     const result = await postsCollection.updateOne(
-//       { _id: new ObjectId(postId) },
-//       { $set: { content } }
-//     );
-
-//     // Check if the update was successful
-//     if (result.modifiedCount === 0) {
-//       return res.status(400).json({ error: "Post content update failed" });
-//     }
-
-//     // Respond with the updated post (or just send a success message)
-//     res.status(200).json({ message: "Post updated successfully" });
-    
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ error: "Failed to update post" });
-//   }
-// });
-// // Like/Unlike a Post
-// app.put("/:userId/api/posts/:postId/like", async (req, res) => {
-//   const { userId, postId } = req.params;
-//   const { id } = req.body;
-//   console.log(id);
-  
-
-//   try {
-//     console.log(`Received like/unlike request for userId: ${userId}, postId: ${postId}`);
-
-//     const database = client.db("leo_posts");
-//     const postsCollection = database.collection(`${userId}`);
-
-//     // Validate postId
-//     if (!ObjectId.isValid(postId)) {
-//       return res.status(400).json({ message: "Invalid postId" });
-//     }
-
-//     // Find the post
-//     const post = await postsCollection.findOne({ _id: new ObjectId(postId) });
-//     if (!post) {
-//       return res.status(404).json({ message: "Post not found" });
-//     }
-
-//     // Check if the user has already liked the post
-//     const hasLiked = post.likedBy && post.likedBy.includes(id);
-
-//     let updateQuery;
-//     if (hasLiked) {
-//       // Unlike the post: remove user ID from likedBy and decrement like count
-//       updateQuery = {
-//         $pull: { likedBy: id }, // Remove user ID from likedBy array
-//         $inc: { like: -1 }, // Decrement the like count
-//       };
-//     } else {
-//       // Like the post: add user ID to likedBy and increment like count
-//       updateQuery = {
-//         $push: { likedBy: id }, // Add user ID to likedBy array
-//         $inc: { like: 1 }, // Increment the like count
-//       };
-//     }
-
-//     // Update the post
-//     const result = await postsCollection.updateOne(
-//       { _id: new ObjectId(postId) },
-//       updateQuery
-//     );
-
-//     console.log("Update result:", result);
-
-//     if (result.modifiedCount === 0) {
-//       return res.status(400).json({ message: "Failed to update like status" });
-//     }
-
-//     // Fetch the updated post to get the new like count
-//     const updatedPost = await postsCollection.findOne({ _id: new ObjectId(postId) });
-
-//     res.status(200).json({
-//       message: hasLiked ? "Post unliked successfully" : "Post liked successfully",
-//       like: updatedPost.like,
-//       liked: !hasLiked, // Return the new liked status
-//     });
-//   } catch (error) {
-//     console.error("Error updating like status:", error);
-//     res.status(500).json({ message: "Internal server error", error: error.message });
-//   }
-// });
-// // Add a Comment to a Post
-// app.post("/:userId/api/posts/:postId/comment", async (req, res) => {
-//   const { userId, postId } = req.params;
-//   const { comment, id } = req.body; // `id` represents the user who made the comment
-
-//   if (!ObjectId.isValid(postId)) {
-//     return res.status(400).json({ message: "Invalid postId" });
-//   }
-
-//   if (!comment || typeof comment !== "string" || comment.trim() === "") {
-//     return res.status(400).json({ message: "Invalid comment" });
-//   }
-
-//   try {
-//     const database = client.db("leo_posts");
-//     const postsCollection = database.collection(`${userId}`);
-
-//     const newComment = {
-//       commentId: new ObjectId(), // Generate unique ObjectId for each comment
-//       userId: id,
-//       comment,
-//       createdAt: new Date(),
-//     };
-
-//     const result = await postsCollection.updateOne(
-//       { _id: new ObjectId(postId) },
-//       { $push: { Comment: newComment } }
-//     );
-
-//     if (result.modifiedCount === 0) {
-//       return res.status(400).json({ message: "Failed to add comment" });
-//     }
-
-//     res.status(201).json({ message: "Comment added successfully", comment: newComment });
-//   } catch (error) {
-//     console.error("Error adding comment:", error);
-//     res.status(500).json({ message: "Internal server error", error: error.message });
-//   }
-// });
-// app.put("/:userId/api/posts/:postId/comment/:commentId", async (req, res) => {
-//   const { userId, postId, commentId } = req.params;
-//   const { comment } = req.body;
-
-//   if (!comment || typeof comment !== "string" || comment.trim() === "") {
-//     return res.status(400).json({ message: "Invalid comment" });
-//   }
-
-//   try {
-//     const database = client.db("leo_posts");
-//     const postsCollection = database.collection(`${userId}`);
-
-//     const result = await postsCollection.updateOne(
-//       { _id: new ObjectId(postId), "Comment.commentId": new ObjectId(commentId) },
-//       { $set: { "Comment.$.comment": comment } }
-//     );
-
-//     if (result.modifiedCount === 0) {
-//       return res.status(400).json({ message: "Failed to update comment" });
-//     }
-
-//     res.status(200).json({ message: "Comment updated successfully" });
-//   } catch (error) {
-//     console.error("Error updating comment:", error);
-//     res.status(500).json({ message: "Internal server error", error: error.message });
-//   }
-// });
-
-// app.delete("/:userId/api/posts/:postId/comment/:commentId", async (req, res) => {
-//   const { userId, postId, commentId } = req.params;
-
-//   try {
-//     const database = client.db("leo_posts");
-//     const postsCollection = database.collection(`${userId}`);
-
-//     const result = await postsCollection.updateOne(
-//       { _id: new ObjectId(postId) },
-//       { $pull: { Comment: { commentId: new ObjectId(commentId) } } }
-//     );
-
-//     if (result.modifiedCount === 0) {
-//       return res.status(400).json({ message: "Failed to delete comment" });
-//     }
-
-//     res.status(200).json({ message: "Comment deleted successfully" });
-//   } catch (error) {
-//     console.error("Error deleting comment:", error);
-//     res.status(500).json({ message: "Internal server error", error: error.message });
-//   }
-// });
-
-
-
-
-
-// // Start the server
-// app.listen(port, () => {
-//   console.log(`Server is running on http://localhost:${port}`);
-// });
 
 const express = require("express");
-const { MongoClient, ServerApiVersion } = require("mongodb");
-const { Server } = require("socket.io");
-const http = require("http");
-const cors = require("cors");
-
 const app = express();
-const port = 5000;
+const http = require('http');
+const { MongoClient, ServerApiVersion } = require('mongodb');
+const { Server, Socket } = require("socket.io");
+var ObjectId = require('mongodb').ObjectId;
 
+const cors = require('cors');
+const { permission } = require("process");
+const port = process.env.PORT || 5000;
+
+// Middleware
 app.use(cors());
 app.use(express.json());
 
-const server = http.createServer(app);
-const io = new Server(server, {
-  cors: { origin: "*" },
-  methods: ["GET", "POST", "PUT", "DELETE"],
-});
-
+// MongoDB Connection
 const uri = "mongodb+srv://inventory:inventory@cluster0.ffl8g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0";
 const client = new MongoClient(uri, {
   serverApi: {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  },
+  }
 });
 
-let db;
-const activeTimers = new Map();
-const playerChoices = new Map();
-
-client.connect()
-  .then(() => {
-    console.log("Connected to MongoDB");
-    db = client.db("rooms_db");
-  })
-  .catch((err) => {
-    console.error("MongoDB connection error:", err);
-    process.exit(1);
-  });
-
-io.on("connection", (socket) => {
-  console.log(`User connected: ${socket.id}`);
-
-  socket.on("join_room", (room) => {
-    socket.join(room);
-    console.log(`User joined room: ${room}`);
-    updatePlayersList(room);
-  });
-
-  socket.on("leave_room", (room) => {
-    socket.leave(room);
-    console.log(`User left room: ${room}`);
-  });
-
-  socket.on("submit_choice", ({ room, username, choice }) => {
-    handleChoiceSubmission(room, username, choice);
-  });
-
-  socket.on("game_over", async (room) => {
-    try {
-      const collection = db.collection("rooms");
-      await collection.deleteOne({ room });
-      io.sockets.in(room).socketsLeave(room);
-      io.to(room).emit("game_ended");
-      console.log(`Room ${room} deleted`);
-    } catch (error) {
-      console.error("Error handling game over:", error);
-    }
-  });
-
-  socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
-  });
-});
-
-async function updatePlayersList(room) {
+async function run() {
   try {
-    const collection = db.collection("rooms");
-    const roomData = await collection.findOne({ room });
-    if (roomData) {
-      io.to(room).emit("players_updated", { participants: roomData.participants });
-    }
-  } catch (error) {
-    console.error("Error updating players list:", error);
-  }
-}
+    await client.connect();
+    console.log("Connected to MongoDB!");
 
-function handleChoiceSubmission(room, username, choice) {
-  if (!playerChoices.has(room)) playerChoices.set(room, new Map());
-  playerChoices.get(room).set(username, choice);
-  
-  io.to(room).emit("choice_submitted", { username });
-
-  if (!activeTimers.has(room)) {
-    startTimer(room);
-  }
-
-  checkRoundCompletion(room);
-}
-
-function startTimer(room) {
-  const timer = {
-    timeLeft: 10,
-    interval: setInterval(() => {
-      const currentTime = timer.timeLeft - 1;
-      timer.timeLeft = currentTime;
-      io.to(room).emit("timer_update", currentTime);
-
-      if (currentTime <= 0) {
-        clearInterval(timer.interval);
-        resolveRound(room);
+    // Create HTTP server and Socket.io instance
+    const server = http.createServer(app);
+    const io = new Server(server, {
+      cors: {
+        origin: "*", // Replace with specific origins if needed
+        methods: ["GET", "POST", "PUT"]
       }
-    }, 1000)
-  };
-  activeTimers.set(room, timer);
-}
+    });
 
-function checkRoundCompletion(room) {
-  const choices = playerChoices.get(room);
-  if (choices && choices.size === 2) {
-    clearInterval(activeTimers.get(room).interval);
-    resolveRound(room);
-  }
-}
+    // Connect Socket.io events
+    io.on('connection', (socket) => {
+      console.log('A user connected');
 
-async function resolveRound(room) {
-  try {
-    const collection = db.collection("rooms");
-    const roomData = await collection.findOne({ room });
-    if (!roomData) return;
+      // Handle incoming events (e.g., 'chat-message')
+      socket.on("send_user", async (data) => {
 
-    const participants = roomData.participants;
-    const choices = playerChoices.get(room) || new Map();
-    
-    const [player1, player2] = participants;
-    const choice1 = choices.get(player1);
-    const choice2 = choices.get(player2);
+        console.log(data);
+        const myDB = client.db("users");
+        const myColl = myDB.collection(`userLoginInfo`);
 
-    const results = {
-      rock: { beats: "scissors" },
-      paper: { beats: "rock" },
-      scissors: { beats: "paper" }
-    };
 
-    let winner = "draw";
-    
-    if (participants.length === 2) {
-      if (choice1 && choice2) {
-        if (choice1 !== choice2) {
-          winner = results[choice1].beats === choice2 ? player1 : player2;
+        const isTaken = await myColl.findOne({ userName: data.userData.userName });
+        if (isTaken === null) {
+
+          const result = await myColl.insertOne(data.userData);
+
+
+
+          // console.log(result.insertedId); // Output: ObjectId("6464252729455d5810000000")
+
+          // Retrieve the full document with its _id
+          const insertedDocument = await myColl.findOne({ _id: result.insertedId });
+          console.log(insertedDocument);
+
+          socket.emit("newUser_msg", { isSigned: true, msg: "You have been signed in" });
+          socket.broadcast.emit("receive_newUser", insertedDocument);
+
+
+        } else {
+          socket.emit("newUser_msg", { isSigned: false, msg: "this username is taken" });
         }
-      } else {
-        if (choice1 && !choice2) winner = player1;
-        else if (!choice1 && choice2) winner = player2;
-      }
-    }
 
-    io.to(room).emit("round_result", {
-      choices: Object.fromEntries(choices),
-      winner,
-      scores: {
-        [player1]: winner === player1 ? 1 : 0,
-        [player2]: winner === player2 ? 1 : 0,
+
+
+      });
+      socket.on("send_postLike", async (data) => {
+        // console.log("data",data);
+
+        const database = client.db("users");
+        const post = database.collection("userLoginInfo");
+
+
+        const query = {
+          _id: new ObjectId(data.id)
+        };
+        // console.log(query);
+
+        const item = await post.findOne(query);
+
+        // console.log("items: ",item);
+        const posts = item.url
+        //  console.log("posts: ",posts);
+
+        let editArray = []
+        for (let i = 0; i < posts.length; i++) {
+          if (data.postId === posts[i].id) {
+            editArray = posts[i].likes
+          }
+
+        }
+
+        console.log(editArray);
+        let update = {}
+        if (data.add && !editArray.includes(data.userName)) {
+          update = {
+            $push: {
+              "url.$[elem].likes": data.userName
+            }
+          };
+
+          const filter = {
+            _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
+          };
+
+          const options = {
+            arrayFilters: [
+              {
+                "elem.id": { $eq: data.postId } // Update the object with this specific id in the url array (optional)
+              }
+            ]
+          };
+
+          const result = await post.updateOne(filter, update, options);
+
+          if (result.modifiedCount > 0) {
+            console.log("Document updated successfully:", result.modifiedCount);
+          } else {
+            console.log("No document found for the specified filter.");
+          }
+
+        } else if (!data.add && editArray.includes(data.userName)) {
+          update = {
+            $pull: {
+              "url.$[elem].likes": data.userName
+            }
+          };
+
+          const filter = {
+            _id: { $eq: new ObjectId(data.id) } // Replace with your actual document's _id
+          };
+
+          const options = {
+            arrayFilters: [
+              {
+                "elem.id": { $eq: data.postId } // Update the object with this specific id in the url array (optional)
+              }
+            ]
+          };
+
+          const result = await post.updateOne(filter, update, options);
+
+          if (result.modifiedCount > 0) {
+            console.log("Document updated successfully:", result.modifiedCount);
+          } else {
+            console.log("No document found for the specified filter.");
+          }
+        } else {
+          console.log("no");
+
+
+        }
+
+
+      })
+
+
+
+
+
+
+      socket.on("send_like", async (data) => {
+        console.log(data.data);
+
+        const database = client.db("users");
+        const post = database.collection("userLoginInfo");
+
+        const updateData = data.data; // Assuming 'data.data' contains an array of objects
+
+        console.log(updateData);
+
+        // Validate input data (optional, but recommended)
+        if (!Array.isArray(updateData) || updateData.length === 0) {
+          // Emit an error event to notify the client about invalid data
+          socket.emit("like_update_error", { message: "Invalid update data provided" });
+          return;
+        }
+
+        const updateDocs = updateData.map((singleData) => {
+          try {
+            // Extract values for update (adjust these based on your data structure)
+            const id = new ObjectId(`${singleData.new_id}`); // Assuming 'id' is a key in each object
+            const newTotal = singleData.new_total;
+            const newLike = singleData.new_like;
+
+            return {
+              updateOne: {
+                filter: { _id: id },
+                update: { $set: { total: newTotal, like: newLike } },
+              },
+            };
+          } catch (err) {
+            console.error(`Error processing update for ID: ${singleData.new_id}`, err);
+            return null; // Skip updating this document on error
+          }
+        });
+
+        // Filter out invalid update objects (optional, but recommended)
+        const filteredUpdateDocs = updateDocs.filter(Boolean); // Remove null values
+
+        if (filteredUpdateDocs.length === 0) {
+          // Emit an error event to notify the client about no valid updates found
+          socket.emit("like_update_error", { message: "No valid updates found" });
+          return;
+        }
+
+        try {
+          const results = await post.bulkWrite(filteredUpdateDocs);
+          const updatedCount = results.modifiedCount;
+
+          // Log the updated objects after successful update
+          // console.log("Updated objects:", filteredUpdateDocs.updateOne.update);
+          socket.broadcast.emit("like_success", { filteredUpdateDocs })
+
+          // Emit a success event to notify the client about the update status
+          socket.emit("like_update_success", { message: `${updatedCount} documents updated successfully` });
+        } catch (err) {
+          console.error("Error updating documents:", err);
+          // Emit an error event to notify the client about the update failure
+          socket.emit("like_update_error", { message: "Error updating documents" });
+        }
+      });
+
+
+
+
+
+
+
+
+
+
+      socket.on('send_order', async (data) => {
+
+        const myDB = client.db("menu");
+        const myColl = myDB.collection(`cash`);
+
+        const result = await myColl.insertOne(data);
+
+        console.log(
+          `A document was inserted with the _id: ${result.insertedId}`,
+        );
+        
+        socket.broadcast.emit("recive_order", data)
+        socket.emit("order_sent", data)
+
+        // const database = client.db("users");
+        // const post = database.collection("userLoginInfo");
+
+        // const updateData = data.data; // Assuming 'data.data' contains an array of objects
+
+        // console.log(updateData);
+        // console.log(data);
+      });
+      socket.on('cancel_order', async (data) => {
+        console.log('Received cancel_order:', data);
+    
+        const myDB = client.db("menu");
+        const myColl = myDB.collection("cash");
+    
+        const filter = { _id: new ObjectId(data._id) };
+    
+        try {
+            const updateResult = await myColl.updateOne(filter, { $set: { req: "cancel" } });
+    
+            if (updateResult.matchedCount === 0) {
+                console.log(`Document with ID ${data._id} not found.`);
+                socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+                console.log(`Document with ID ${data._id} updated successfully.`);
+                socket.broadcast.emit('requested', { id: data._id, req: "cancel" });
+            }
+        } catch (err) {
+            console.error('Error updating document:', err);
+            socket.emit('internalServerError', { message: 'Internal server error' });
+        }
+    });
+      
+      socket.on('updateToPrepare', async (data) => {
+
+        const myDB = client.db("menu");
+        const myColl = myDB.collection(`cash`);
+        console.log(data);
+        const id = data.id
+        const filter = { _id: new ObjectId(data.id) }
+        const options = { upsert: true }
+        if (data.status === "granted") {
+          const update = {
+            $set: {
+              status: "granted"
+            }
+          };
+          try {
+            const updateResult = await myColl.updateOne(filter, update, options);
+        
+            if (updateResult.matchedCount === 0) {
+              // Emit an event to the client indicating document not found
+              socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+              // Emit an event to the client indicating success
+              socket.broadcast.emit('statusGranted', { id ,status:"granted"});
+            }
+          } catch (err) {
+            console.error('Error updating document:', err);
+            // Emit an event to the client indicating an internal server error
+            socket.emit('internalServerError', { message: 'Internal server error' });
+          }
+        
+        }else if (data.status === "complete") {
+          const update = {
+            $set: {
+              status: "complete",
+              orderCompleteTime: data.orderCompleteTime
+
+            }
+          };
+          try {
+            const updateResult = await myColl.updateOne(filter, update, options);
+        
+            if (updateResult.matchedCount === 0) {
+              // Emit an event to the client indicating document not found
+              socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+              // Emit an event to the client indicating success
+              socket.broadcast.emit('statusGranted', { id, status:"complete" });
+            }
+          } catch (err) {
+            console.error('Error updating document:', err);
+            // Emit an event to the client indicating an internal server error
+            socket.emit('internalServerError', { message: 'Internal server error' });
+          }
+        }else if (data.status === "cancel") {
+          const update = {
+            $set: {
+              status: "cancel",
+              orderCompleteTime: data.orderCompleteTime
+
+            }
+          };
+          try {
+            const updateResult = await myColl.updateOne(filter, update, options);
+        
+            if (updateResult.matchedCount === 0) {
+              // Emit an event to the client indicating document not found
+              socket.emit('documentNotFound', { message: 'Document not found' });
+            } else {
+              // Emit an event to the client indicating success
+              socket.broadcast.emit('statusGranted', { id, status:"cancel" });
+            }
+          } catch (err) {
+            console.error('Error updating document:', err);
+            // Emit an event to the client indicating an internal server error
+            socket.emit('internalServerError', { message: 'Internal server error' });
+          }
+        }
+      
+        
+       
+      });
+
+
+
+
+      socket.on('disconnect', () => {
+        console.log('User disconnected');
+      });
+    });
+
+    // Existing API endpoints (GET /users, POST /addPic, PUT /update)
+    app.get('/users', async (req, res) => {
+      try {
+        const database = client.db("users");
+        const post = database.collection("userLoginInfo");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+    app.get(`/get_user/:user_name/:password`, async (req, res) => {
+      const database = client.db("users");
+      const post = database.collection("userLoginInfo");
+
+
+      const query = {
+        userName: req.params.user_name,
+        password: req.params.password,
+      };
+      console.log(query);
+
+      const item = await post.findOne(query);
+
+      console.log(item);
+
+      if (item === null) {
+        res.send({ permission: false })
+      } else {
+        item.password = ""
+        res.send({
+          permission: true,
+          item
+        })
+
+      }
+      // try {
+      //   const database = client.db("users");
+      //   const post = database.collection("userLoginInfo");
+      //   const documents = await post.find({}).toArray();
+
+      //   const data = documents;
+      //   res.json(data);
+      // } catch (error) {
+      //   console.error('Error fetching data:', error);
+      //   res.status(500).json({ message: 'Server error' });
+      // }
+    });
+    app.get(`/get_user/:id`, async (req, res) => {
+      const database = client.db("users");
+      const post = database.collection("userLoginInfo");
+
+
+      const query = {
+        _id: new ObjectId(req.params.id)
+      };
+      console.log(query);
+
+      const item = await post.findOne(query);
+
+      console.log(item);
+
+      if (item === null) {
+        res.send({ permission: false })
+      } else {
+        item.password = ""
+        res.send(item)
+
+      }
+      // try {
+      //   const database = client.db("users");
+      //   const post = database.collection("userLoginInfo");
+      //   const documents = await post.find({}).toArray();
+
+      //   const data = documents;
+      //   res.json(data);
+      // } catch (error) {
+      //   console.error('Error fetching data:', error);
+      //   res.status(500).json({ message: 'Server error' });
+      // }
+    });
+
+    // app.post("/addUser", async (req, res) => {
+    //   const newUser = req.body;
+    //   console.log("called");
+    //   console.log(newUser);
+
+    //   const myDB = client.db("users");
+    //   const myColl = myDB.collection(`userLoginInfo`);
+
+    //   const result = await myColl.insertOne(newUser);
+
+    //   console.log(
+    //     `A document was inserted with the _id: ${result.insertedId}`,
+    //   );
+
+    // });
+
+
+
+
+
+
+
+
+    // start of order web
+    app.get('/getRecivedOrders', async (req, res) => {
+
+      try {
+        const database = client.db("menu");
+        const post = database.collection("cash");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+    app.get('/getMenu', async (req, res) => {
+
+      try {
+        const database = client.db("menu");
+        const post = database.collection("menu");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
       }
     });
 
-    activeTimers.delete(room);
-    playerChoices.delete(room);
-  } catch (error) {
-    console.error("Error resolving round:", error);
+
+
+    app.get('/getMenu/:category', async (req, res) => {
+
+      try {
+        const database = client.db("menu");
+        const post = database.collection("menu");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+
+
+
+    // end of order web
+
+
+
+
+
+
+
+
+    app.get('/orders', async (req, res) => {
+      try {
+        const database = client.db("tables");
+        const post = database.collection("table");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+
+    app.get('/tables/getMenu', async (req, res) => {
+      const tableNum = req.params.table_num
+      try {
+        const database = client.db("menu");
+        const post = database.collection("items");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+
+
+
+
+
+
+
+
+
+
+    app.put('/addPick', async (req, res) => {
+      const updatedUserPic = req.body;
+      const database = client.db("users");
+      const post = database.collection("userLoginInfo");
+      const filter = { _id: new ObjectId(updatedUserPic.id) }
+      const options = { upsert: true }
+
+      console.log(updatedUserPic);
+      const update = {
+        $push: {
+          url: {
+            $each: [updatedUserPic.newUrl]
+          }
+        }
+      }
+
+      try {
+        const updateResult = await post.updateOne(filter, update, options);
+
+        if (updateResult.matchedCount === 0) {
+          return res.status(404).json({ message: 'Document not found' });
+        }
+
+        res.json({ message: 'Document updated successfully' });
+      } catch (err) {
+        console.error('Error updating document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+
+
+    app.get('/get_rating', async (req, res) => {
+      try {
+        const database = client.db("rating");
+        const post = database.collection("rating");
+        const documents = await post.find({}).toArray();
+
+        const data = documents;
+        res.json(data);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+    app.get('/get_rating/:id', async (req, res) => {
+      try {
+        const database = client.db("rating");
+        const post = database.collection("rating");
+        const id = req.params.id; // Get the ID from the URL parameter
+
+        const document = await post.findOne({ _id: new ObjectId(id) }); // Find the document by ID
+
+        if (document) {
+          res.json(document);
+        } else {
+          res.status(404).json({ message: 'Document not found' });
+        }
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        res.status(500).json({ message: 'Server error' });
+      }
+    });
+    app.get('/rating/:id', async (req, res) => {
+      const database = client.db("rating"); // Assuming client is a MongoDB client instance
+      const post = database.collection("rating");
+      const id = req.params.id;
+
+      try {
+        // Use findOne method directly
+        const result = await post.findOne({ _id: new ObjectId(id) });
+
+        if (!result) {
+          // Handle case where no document is found
+          return res.status(404).json({ message: 'Rating not found' });
+        }
+
+        res.send(result);
+      } catch (error) {
+        console.error('Error fetching rating document:', error);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+    app.post('/set_rating', async (req, res) => {
+      const updatedUserPic = req.body;
+      const database = client.db("rating");
+      const post = database.collection("rating");
+
+      try {
+        const updateResult = await post.insertOne(updatedUserPic);
+
+        if (updateResult.matchedCount === 0) {
+          return res.status(404).json({ message: 'Document not found' });
+        }
+
+        res.json(updateResult);
+      } catch (err) {
+        console.error('Error updating document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+    });
+    app.delete('/deleteRating/:id', async (req, res) => {
+      const database = client.db("rating");
+      const post = database.collection("rating");
+      const id = req.params.id
+      const query = { _id: new ObjectId(id) }
+
+      try {
+        const result = await post.deleteOne(query);
+        res.send(result)
+
+
+
+
+      } catch (err) {
+        console.error('Error deleting document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+
+    });
+    app.put('/set_rating/:id', async (req, res) => {
+      const database = client.db("rating");
+      const post = database.collection("rating");
+      const id = req.params.id
+      const filter = { _id: new ObjectId(id) }
+      const options = { update: true }
+      const updateOrder = req.body
+
+      const order = {
+        $set: {
+          foodQuality: updateOrder.foodQuality,
+          overallServiceQuality: updateOrder.overallServiceQuality,
+          cleanliness: updateOrder.cleanliness,
+          orderAccuracy: updateOrder.orderAccuracy,
+          speedOfService: updateOrder.speedOfService,
+          value: updateOrder.value,
+          overallExperience: updateOrder.overallExperience,
+          text: updateOrder.text,
+          bill: updateOrder.bill - updateOrder.bill * 0.1
+        }
+      }
+
+      try {
+        const result = await post.updateOne(filter, order, options);
+        res.send(result)
+
+
+
+
+      } catch (err) {
+        console.error('Error deleting document:', err);
+        res.status(500).json({ message: 'Internal server error' });
+      }
+
+    });
+
+    app.put('/update', async (req, res) => {
+      const database = client.db("users");
+      const post = database.collection("userLoginInfo");
+
+      const updateData = req.body; // Assuming 'req.body' contains an array of objects
+      console.log(updateData);
+
+
+
+
+    });
+    app.get('/', (req, res) => {
+      res.send('Hello, World!');
+
+    });
+
+
+    // Start the server
+    server.listen(port, () => {
+      console.log(`Server listening on port ${port}`);
+    });
+  } finally {
+    // Ensure client closure even on errors (uncomment if needed)
+    // await client.close();
   }
 }
 
-app.get("/", async (req, res) => {
-  try {
-    const collection = db.collection("rooms");
-    const roomData = await collection.findOne({ room: req.params.room });
-    res.status(200).json({
-     
-      status: "ok"
-    });
-  } catch (error) {
-    console.error("Error fetching players:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-app.get("/players/:room", async (req, res) => {
-  try {
-    const collection = db.collection("rooms");
-    const roomData = await collection.findOne({ room: req.params.room });
-    res.status(200).json({
-      participants: roomData?.participants || [],
-      message: "Players fetched successfully"
-    });
-  } catch (error) {
-    console.error("Error fetching players:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.post("/:room", async (req, res) => {
-  const { room } = req.params;
-  const { username } = req.body;
-
-  try {
-    const collection = db.collection("rooms");
-    let roomData = await collection.findOne({ room });
-
-    if (!roomData) {
-      const insertResult = await collection.insertOne({ 
-        room, 
-        participants: [username],
-        createdAt: new Date()
-      });
-      roomData = await collection.findOne({ _id: insertResult.insertedId });
-    } else {
-      if (roomData.participants.length >= 2) {
-        return res.status(400).json({ message: "Room is full" });
-      }
-
-      if (!roomData.participants.includes(username)) {
-        const updatedParticipants = [...roomData.participants, username];
-        await collection.updateOne(
-          { room },
-          { $set: { participants: updatedParticipants } }
-        );
-        roomData = await collection.findOne({ room });
-      }
-    }
-
-    io.to(room).emit("players_updated", { participants: roomData.participants });
-    res.status(200).json({
-      message: roomData.participants.length === 1 ? "Room created" : "Joined room",
-      participants: roomData.participants
-    });
-  } catch (error) {
-    console.error("Error joining room:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-app.delete("/:room/leave", async (req, res) => {
-  const { room } = req.params;
-  const { username } = req.body;
-
-  try {
-    const collection = db.collection("rooms");
-    const roomData = await collection.findOne({ room });
-
-    if (!roomData) return res.status(404).json({ message: "Room not found" });
-
-    const updatedParticipants = roomData.participants.filter(u => u !== username);
-    
-    if (updatedParticipants.length > 0) {
-      await collection.updateOne({ room }, { $set: { participants: updatedParticipants } });
-    } else {
-      await collection.deleteOne({ room });
-    }
-
-    io.to(room).emit("players_updated", { participants: updatedParticipants });
-    res.status(200).json({ message: "Left room successfully" });
-  } catch (error) {
-    console.error("Error leaving room:", error);
-    res.status(500).json({ message: "Internal server error" });
-  }
-});
-
-server.listen(port, () => {
-  console.log(`Server running on http://localhost:${port}`);
-});
+run().catch(console.dir);
